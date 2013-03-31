@@ -1,0 +1,38 @@
+{
+  "devMode": true,
+  "version": "0.1",
+  "name": "CodeMirror",
+  "identifier": "com.koding.apps.codemirror",
+  "path": "~/Applications/CodeMirror.kdapp",
+  "homepage": "fatihacet.koding.com/codemirror",
+  "author": "Fatih Acet",
+  "repository": "git://github.com/fatihacet/CodeMirror.kdapp.git",
+  "description": "CodeMirror : a Koding application created with the blank template.",
+  "category": "web-app",
+  "source": {
+    "blocks": {
+      "app": {
+        "files": [
+          "./lib/codemirror/lib/codemirror.js",
+          "./lib/codemirror/mode/javascript/javascript.js",
+          "./app/codemirrorbottombar.coffee",
+          "./app/codemirroreditorcontainer.coffee",
+          "./app/codemirrortopbar.coffee",
+          "./app/codemirroreditor.coffee",
+          "./index.coffee"
+        ]
+      }
+    },
+    "stylesheets": [
+      "./lib/codemirror/lib/codemirror.css",
+      "./lib/codemirror/theme/ambiance.css",
+      "./resources/style.css"
+    ]
+  },
+  "options": {
+    "type": "tab"
+  },
+  "icns": {
+    "128": "./resources/icon.128.png"
+  }
+}
