@@ -1,4 +1,4 @@
-// Compiled by Koding Servers at Sat Mar 30 2013 22:27:40 GMT-0700 (PDT) in server time
+// Compiled by Koding Servers at Mon Apr 01 2013 14:12:01 GMT-0700 (PDT) in server time
 
 (function() {
 
@@ -5973,7 +5973,1082 @@ CodeMirror.defineMIME("application/typescript", { name: "javascript", typescript
 
 
 
-/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/app/codemirrorbottombar.coffee */
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/lib/codemirror/addon/mode/loadmode.js */
+
+(function() {
+  if (!CodeMirror.modeURL) CodeMirror.modeURL = "../mode/%N/%N.js";
+
+  var loading = {};
+  function splitCallback(cont, n) {
+    var countDown = n;
+    return function() { if (--countDown == 0) cont(); };
+  }
+  function ensureDeps(mode, cont) {
+    var deps = CodeMirror.modes[mode].dependencies;
+    if (!deps) return cont();
+    var missing = [];
+    for (var i = 0; i < deps.length; ++i) {
+      if (!CodeMirror.modes.hasOwnProperty(deps[i]))
+        missing.push(deps[i]);
+    }
+    if (!missing.length) return cont();
+    var split = splitCallback(cont, missing.length);
+    for (var i = 0; i < missing.length; ++i)
+      CodeMirror.requireMode(missing[i], split);
+  }
+
+  CodeMirror.requireMode = function(mode, cont) {
+    if (typeof mode != "string") mode = mode.name;
+    if (CodeMirror.modes.hasOwnProperty(mode)) return ensureDeps(mode, cont);
+    if (loading.hasOwnProperty(mode)) return loading[mode].push(cont);
+
+    var script = document.createElement("script");
+    script.src = CodeMirror.modeURL.replace(/%N/g, mode);
+    var others = document.getElementsByTagName("script")[0];
+    others.parentNode.insertBefore(script, others);
+    var list = loading[mode] = [cont];
+    var count = 0, poll = setInterval(function() {
+      if (++count > 100) return clearInterval(poll);
+      if (CodeMirror.modes.hasOwnProperty(mode)) {
+        clearInterval(poll);
+        loading[mode] = null;
+        ensureDeps(mode, function() {
+          for (var i = 0; i < list.length; ++i) list[i]();
+        });
+      }
+    }, 200);
+  };
+
+  CodeMirror.autoLoadMode = function(instance, mode) {
+    if (!CodeMirror.modes.hasOwnProperty(mode))
+      CodeMirror.requireMode(mode, function() {
+        instance.setOption("mode", instance.getOption("mode"));
+      });
+  };
+}());
+
+
+/* BLOCK ENDS */
+
+
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/lib/codemirror/addon/selection/active-line.js */
+
+// Because sometimes you need to style the cursor's line.
+//
+// Adds an option 'styleActiveLine' which, when enabled, gives the
+// active line's wrapping <div> the CSS class "CodeMirror-activeline",
+// and gives its background <div> the class "CodeMirror-activeline-background".
+
+(function() {
+  "use strict";
+  var WRAP_CLASS = "CodeMirror-activeline";
+  var BACK_CLASS = "CodeMirror-activeline-background";
+
+  CodeMirror.defineOption("styleActiveLine", false, function(cm, val, old) {
+    var prev = old && old != CodeMirror.Init;
+    if (val && !prev) {
+      updateActiveLine(cm);
+      cm.on("cursorActivity", updateActiveLine);
+    } else if (!val && prev) {
+      cm.off("cursorActivity", updateActiveLine);
+      clearActiveLine(cm);
+      delete cm._activeLine;
+    }
+  });
+  
+  function clearActiveLine(cm) {
+    if ("_activeLine" in cm) {
+      cm.removeLineClass(cm._activeLine, "wrap", WRAP_CLASS);
+      cm.removeLineClass(cm._activeLine, "background", BACK_CLASS);
+    }
+  }
+
+  function updateActiveLine(cm) {
+    var line = cm.getLineHandle(cm.getCursor().line);
+    if (cm._activeLine == line) return;
+    clearActiveLine(cm);
+    cm.addLineClass(line, "wrap", WRAP_CLASS);
+    cm.addLineClass(line, "background", BACK_CLASS);
+    cm._activeLine = line;
+  }
+})();
+
+
+/* BLOCK ENDS */
+
+
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/lib/codemirror/addon/search/searchcursor.js */
+
+(function(){
+  var Pos = CodeMirror.Pos;
+
+  function SearchCursor(cm, query, pos, caseFold) {
+    this.atOccurrence = false; this.cm = cm;
+    if (caseFold == null && typeof query == "string") caseFold = false;
+
+    pos = pos ? cm.clipPos(pos) : Pos(0, 0);
+    this.pos = {from: pos, to: pos};
+
+    // The matches method is filled in based on the type of query.
+    // It takes a position and a direction, and returns an object
+    // describing the next occurrence of the query, or null if no
+    // more matches were found.
+    if (typeof query != "string") { // Regexp match
+      if (!query.global) query = new RegExp(query.source, query.ignoreCase ? "ig" : "g");
+      this.matches = function(reverse, pos) {
+        if (reverse) {
+          query.lastIndex = 0;
+          var line = cm.getLine(pos.line).slice(0, pos.ch), cutOff = 0, match, start;
+          for (;;) {
+            query.lastIndex = cutOff;
+            var newMatch = query.exec(line);
+            if (!newMatch) break;
+            match = newMatch;
+            start = match.index;
+            cutOff = match.index + 1;
+          }
+        } else {
+          query.lastIndex = pos.ch;
+          var line = cm.getLine(pos.line), match = query.exec(line),
+          start = match && match.index;
+        }
+        if (match && match[0])
+          return {from: Pos(pos.line, start),
+                  to: Pos(pos.line, start + match[0].length),
+                  match: match};
+      };
+    } else { // String query
+      if (caseFold) query = query.toLowerCase();
+      var fold = caseFold ? function(str){return str.toLowerCase();} : function(str){return str;};
+      var target = query.split("\n");
+      // Different methods for single-line and multi-line queries
+      if (target.length == 1) {
+        if (!query.length) {
+          // Empty string would match anything and never progress, so
+          // we define it to match nothing instead.
+          this.matches = function() {};
+        } else {
+          this.matches = function(reverse, pos) {
+            var line = fold(cm.getLine(pos.line)), len = query.length, match;
+            if (reverse ? (pos.ch >= len && (match = line.lastIndexOf(query, pos.ch - len)) != -1)
+                        : (match = line.indexOf(query, pos.ch)) != -1)
+              return {from: Pos(pos.line, match),
+                      to: Pos(pos.line, match + len)};
+          };
+        }
+      } else {
+        this.matches = function(reverse, pos) {
+          var ln = pos.line, idx = (reverse ? target.length - 1 : 0), match = target[idx], line = fold(cm.getLine(ln));
+          var offsetA = (reverse ? line.indexOf(match) + match.length : line.lastIndexOf(match));
+          if (reverse ? offsetA >= pos.ch || offsetA != match.length
+              : offsetA <= pos.ch || offsetA != line.length - match.length)
+            return;
+          for (;;) {
+            if (reverse ? !ln : ln == cm.lineCount() - 1) return;
+            line = fold(cm.getLine(ln += reverse ? -1 : 1));
+            match = target[reverse ? --idx : ++idx];
+            if (idx > 0 && idx < target.length - 1) {
+              if (line != match) return;
+              else continue;
+            }
+            var offsetB = (reverse ? line.lastIndexOf(match) : line.indexOf(match) + match.length);
+            if (reverse ? offsetB != line.length - match.length : offsetB != match.length)
+              return;
+            var start = Pos(pos.line, offsetA), end = Pos(ln, offsetB);
+            return {from: reverse ? end : start, to: reverse ? start : end};
+          }
+        };
+      }
+    }
+  }
+
+  SearchCursor.prototype = {
+    findNext: function() {return this.find(false);},
+    findPrevious: function() {return this.find(true);},
+
+    find: function(reverse) {
+      var self = this, pos = this.cm.clipPos(reverse ? this.pos.from : this.pos.to);
+      function savePosAndFail(line) {
+        var pos = Pos(line, 0);
+        self.pos = {from: pos, to: pos};
+        self.atOccurrence = false;
+        return false;
+      }
+
+      for (;;) {
+        if (this.pos = this.matches(reverse, pos)) {
+          if (!this.pos.from || !this.pos.to) { console.log(this.matches, this.pos); }
+          this.atOccurrence = true;
+          return this.pos.match || true;
+        }
+        if (reverse) {
+          if (!pos.line) return savePosAndFail(0);
+          pos = Pos(pos.line-1, this.cm.getLine(pos.line-1).length);
+        }
+        else {
+          var maxLine = this.cm.lineCount();
+          if (pos.line == maxLine - 1) return savePosAndFail(maxLine);
+          pos = Pos(pos.line + 1, 0);
+        }
+      }
+    },
+
+    from: function() {if (this.atOccurrence) return this.pos.from;},
+    to: function() {if (this.atOccurrence) return this.pos.to;},
+
+    replace: function(newText) {
+      if (!this.atOccurrence) return;
+      var lines = CodeMirror.splitLines(newText);
+      this.cm.replaceRange(lines, this.pos.from, this.pos.to);
+      this.pos.to = Pos(this.pos.from.line + lines.length - 1,
+                        lines[lines.length - 1].length + (lines.length == 1 ? this.pos.from.ch : 0));
+    }
+  };
+
+  CodeMirror.defineExtension("getSearchCursor", function(query, pos, caseFold) {
+    return new SearchCursor(this, query, pos, caseFold);
+  });
+})();
+
+
+/* BLOCK ENDS */
+
+
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/lib/codemirror/addon/search/match-highlighter.js */
+
+// Highlighting text that matches the selection
+//
+// Defines an option highlightSelectionMatches, which, when enabled,
+// will style strings that match the selection throughout the
+// document.
+//
+// The option can be set to true to simply enable it, or to a
+// {minChars, style} object to explicitly configure it. minChars is
+// the minimum amount of characters that should be selected for the
+// behavior to occur, and style is the token style to apply to the
+// matches. This will be prefixed by "cm-" to create an actual CSS
+// class name.
+
+(function() {
+  var DEFAULT_MIN_CHARS = 2;
+  var DEFAULT_TOKEN_STYLE = "matchhighlight";
+  
+  function State(options) {
+    this.minChars = typeof options == "object" && options.minChars || DEFAULT_MIN_CHARS;
+    this.style = typeof options == "object" && options.style || DEFAULT_TOKEN_STYLE;
+    this.overlay = null;
+  }
+
+  CodeMirror.defineOption("highlightSelectionMatches", false, function(cm, val, old) {
+    var prev = old && old != CodeMirror.Init;
+    if (val && !prev) {
+      cm._matchHighlightState = new State(val);
+      cm.on("cursorActivity", highlightMatches);
+    } else if (!val && prev) {
+      var over = cm._matchHighlightState.overlay;
+      if (over) cm.removeOverlay(over);
+      cm._matchHighlightState = null;
+      cm.off("cursorActivity", highlightMatches);
+    }
+  });
+
+  function highlightMatches(cm) {
+    cm.operation(function() {
+      var state = cm._matchHighlightState;
+      if (state.overlay) {
+        cm.removeOverlay(state.overlay);
+        state.overlay = null;
+      }
+
+      if (!cm.somethingSelected()) return;
+      var selection = cm.getSelection().replace(/^\s+|\s+$/g, "");
+      if (selection.length < state.minChars) return;
+
+      cm.addOverlay(state.overlay = makeOverlay(selection, state.style));
+    });
+  }
+
+  function makeOverlay(query, style) {
+    return {token: function(stream) {
+      if (stream.match(query)) return style;
+      stream.next();
+      stream.skipTo(query.charAt(0)) || stream.skipToEnd();
+    }};
+  }
+})();
+
+
+/* BLOCK ENDS */
+
+
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/lib/codemirror/addon/edit/matchbrackets.js */
+
+(function() {
+  var ie_lt8 = /MSIE \d/.test(navigator.userAgent) &&
+    (document.documentMode == null || document.documentMode < 8);
+
+  var Pos = CodeMirror.Pos;
+  // Disable brace matching in long lines, since it'll cause hugely slow updates  
+  var maxLineLen = 1000;
+
+  var matching = {"(": ")>", ")": "(<", "[": "]>", "]": "[<", "{": "}>", "}": "{<"};
+  function findMatchingBracket(cm) {
+    var cur = cm.getCursor(), line = cm.getLineHandle(cur.line), pos = cur.ch - 1;
+    var match = (pos >= 0 && matching[line.text.charAt(pos)]) || matching[line.text.charAt(++pos)];
+    if (!match) return null;
+    var forward = match.charAt(1) == ">", d = forward ? 1 : -1;
+    var style = cm.getTokenAt(Pos(cur.line, pos + 1)).type;
+
+    var stack = [line.text.charAt(pos)], re = /[(){}[\]]/;
+    function scan(line, lineNo, start) {
+      if (!line.text) return;
+      var pos = forward ? 0 : line.text.length - 1, end = forward ? line.text.length : -1;
+      if (start != null) pos = start + d;
+      for (; pos != end; pos += d) {
+        var ch = line.text.charAt(pos);
+        if (re.test(ch) && cm.getTokenAt(Pos(lineNo, pos + 1)).type == style) {
+          var match = matching[ch];
+          if (match.charAt(1) == ">" == forward) stack.push(ch);
+          else if (stack.pop() != match.charAt(0)) return {pos: pos, match: false};
+          else if (!stack.length) return {pos: pos, match: true};
+        }
+      }
+    }
+    for (var i = cur.line, found, e = forward ? Math.min(i + 100, cm.lineCount()) : Math.max(-1, i - 100); i != e; i+=d) {
+      if (i == cur.line) found = scan(line, i, pos);
+      else found = scan(cm.getLineHandle(i), i);
+      if (found) break;
+    }
+    return {from: Pos(cur.line, pos), to: found && Pos(i, found.pos), match: found && found.match};
+  }
+
+  function matchBrackets(cm, autoclear) {
+    var found = findMatchingBracket(cm);
+    if (!found || cm.getLine(found.from.line).length > maxLineLen ||
+       found.to && cm.getLine(found.to.line).length > maxLineLen)
+      return;
+
+    var style = found.match ? "CodeMirror-matchingbracket" : "CodeMirror-nonmatchingbracket";
+    var one = cm.markText(found.from, Pos(found.from.line, found.from.ch + 1), {className: style});
+    var two = found.to && cm.markText(found.to, Pos(found.to.line, found.to.ch + 1), {className: style});
+    // Kludge to work around the IE bug from issue #1193, where text
+    // input stops going to the textare whever this fires.
+    if (ie_lt8 && cm.state.focused) cm.display.input.focus();
+    var clear = function() {
+      cm.operation(function() { one.clear(); two && two.clear(); });
+    };
+    if (autoclear) setTimeout(clear, 800);
+    else return clear;
+  }
+
+  var currentlyHighlighted = null;
+  function doMatchBrackets(cm) {
+    cm.operation(function() {
+      if (currentlyHighlighted) {currentlyHighlighted(); currentlyHighlighted = null;}
+      if (!cm.somethingSelected()) currentlyHighlighted = matchBrackets(cm, false);
+    });
+  }
+
+  CodeMirror.defineOption("matchBrackets", false, function(cm, val) {
+    if (val) cm.on("cursorActivity", doMatchBrackets);
+    else cm.off("cursorActivity", doMatchBrackets);
+  });
+
+  CodeMirror.defineExtension("matchBrackets", function() {matchBrackets(this, true);});
+  CodeMirror.defineExtension("findMatchingBracket", function(){return findMatchingBracket(this);});
+})();
+
+
+/* BLOCK ENDS */
+
+
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/lib/codemirror/addon/edit/closebrackets.js */
+
+(function() {
+  var DEFAULT_BRACKETS = "()[]{}''\"\"";
+  var SPACE_CHAR_REGEX = /\s/;
+
+  CodeMirror.defineOption("autoCloseBrackets", false, function(cm, val, old) {
+    var wasOn = old && old != CodeMirror.Init;
+    if (val && !wasOn)
+      cm.addKeyMap(buildKeymap(typeof val == "string" ? val : DEFAULT_BRACKETS));
+    else if (!val && wasOn)
+      cm.removeKeyMap("autoCloseBrackets");
+  });
+
+  function buildKeymap(pairs) {
+    var map = {
+      name : "autoCloseBrackets",
+      Backspace: function(cm) {
+        if (cm.somethingSelected()) return CodeMirror.Pass;
+        var cur = cm.getCursor(), line = cm.getLine(cur.line);
+        if (cur.ch && cur.ch < line.length &&
+            pairs.indexOf(line.slice(cur.ch - 1, cur.ch + 1)) % 2 == 0)
+          cm.replaceRange("", CodeMirror.Pos(cur.line, cur.ch - 1), CodeMirror.Pos(cur.line, cur.ch + 1));
+        else
+          return CodeMirror.Pass;
+      }
+    };
+    var closingBrackets = [];
+    for (var i = 0; i < pairs.length; i += 2) (function(left, right) {
+      if (left != right) closingBrackets.push(right);
+      function surround(cm) {
+          var selection = cm.getSelection();
+          cm.replaceSelection(left + selection + right);
+      }
+      function maybeOverwrite(cm) {
+        var cur = cm.getCursor(), ahead = cm.getRange(cur, CodeMirror.Pos(cur.line, cur.ch + 1));
+        if (ahead != right || cm.somethingSelected()) return CodeMirror.Pass;
+        else cm.execCommand("goCharRight");
+      }
+      map["'" + left + "'"] = function(cm) {
+        if (cm.somethingSelected()) return surround(cm);
+        if (left == right && maybeOverwrite(cm) != CodeMirror.Pass) return;
+        var cur = cm.getCursor(), ahead = CodeMirror.Pos(cur.line, cur.ch + 1);
+        var line = cm.getLine(cur.line), nextChar = line.charAt(cur.ch);
+        if (line.length == cur.ch || closingBrackets.indexOf(nextChar) >= 0 || SPACE_CHAR_REGEX.test(nextChar))
+          cm.replaceSelection(left + right, {head: ahead, anchor: ahead});
+        else
+          return CodeMirror.Pass;
+      };
+      if (left != right) map["'" + right + "'"] = maybeOverwrite;
+    })(pairs.charAt(i), pairs.charAt(i + 1));
+    return map;
+  }
+})();
+
+
+/* BLOCK ENDS */
+
+
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/lib/codemirror/addon/hint/show-hint.js */
+
+CodeMirror.showHint = function(cm, getHints, options) {
+  if (!options) options = {};
+  var startCh = cm.getCursor().ch, continued = false;
+  var closeOn = options.closeCharacters || /[\s()\[\]{};:]/;
+
+  function startHinting() {
+    // We want a single cursor position.
+    if (cm.somethingSelected()) return;
+
+    if (options.async)
+      getHints(cm, showHints, options);
+    else
+      return showHints(getHints(cm, options));
+  }
+
+  function getText(completion) {
+    if (typeof completion == "string") return completion;
+    else return completion.text;
+  }
+
+  function pickCompletion(cm, data, completion) {
+    if (completion.hint) completion.hint(cm, data, completion);
+    else cm.replaceRange(getText(completion), data.from, data.to);
+  }
+
+  function showHints(data) {
+    if (!data || !data.list.length) return;
+    var completions = data.list;
+    // When there is only one completion, use it directly.
+    if (!continued && options.completeSingle !== false && completions.length == 1) {
+      pickCompletion(cm, data, completions[0]);
+      return true;
+    }
+
+    // Build the select widget
+    var hints = document.createElement("ul"), selectedHint = 0;
+    hints.className = "CodeMirror-hints";
+    for (var i = 0; i < completions.length; ++i) {
+      var elt = hints.appendChild(document.createElement("li")), completion = completions[i];
+      var className = "CodeMirror-hint" + (i ? "" : " CodeMirror-hint-active");
+      if (completion.className != null) className = completion.className + " " + className;
+      elt.className = className;
+      if (completion.render) completion.render(elt, data, completion);
+      else elt.appendChild(document.createTextNode(getText(completion)));
+      elt.hintId = i;
+    }
+    var pos = cm.cursorCoords(options.alignWithWord !== false ? data.from : null);
+    var left = pos.left, top = pos.bottom, below = true;
+    hints.style.left = left + "px";
+    hints.style.top = top + "px";
+    document.body.appendChild(hints);
+
+    // If we're at the edge of the screen, then we want the menu to appear on the left of the cursor.
+    var winW = window.innerWidth || Math.max(document.body.offsetWidth, document.documentElement.offsetWidth);
+    var winH = window.innerHeight || Math.max(document.body.offsetHeight, document.documentElement.offsetHeight);
+    var box = hints.getBoundingClientRect();
+    var overlapX = box.right - winW, overlapY = box.bottom - winH;
+    if (overlapX > 0) {
+      if (box.right - box.left > winW) {
+        hints.style.width = (winW - 5) + "px";
+        overlapX -= (box.right - box.left) - winW;
+      }
+      hints.style.left = (left = pos.left - overlapX) + "px";
+    }
+    if (overlapY > 0) {
+      var height = box.bottom - box.top;
+      if (box.top - (pos.bottom - pos.top) - height > 0) {
+        overlapY = height + (pos.bottom - pos.top);
+        below = false;
+      } else if (height > winH) {
+        hints.style.height = (winH - 5) + "px";
+        overlapY -= height - winH;
+      }
+      hints.style.top = (top = pos.bottom - overlapY) + "px";
+    }
+
+    function changeActive(i) {
+      i = Math.max(0, Math.min(i, completions.length - 1));
+      if (selectedHint == i) return;
+      var node = hints.childNodes[selectedHint];
+      node.className = node.className.replace(" CodeMirror-hint-active", "");
+      node = hints.childNodes[selectedHint = i];
+      node.className += " CodeMirror-hint-active";
+      if (node.offsetTop < hints.scrollTop)
+        hints.scrollTop = node.offsetTop - 3;
+      else if (node.offsetTop + node.offsetHeight > hints.scrollTop + hints.clientHeight)
+        hints.scrollTop = node.offsetTop + node.offsetHeight - hints.clientHeight + 3;
+    }
+
+    function screenAmount() {
+      return Math.floor(hints.clientHeight / hints.firstChild.offsetHeight) || 1;
+    }
+
+    var ourMap = {
+      Up: function() {changeActive(selectedHint - 1);},
+      Down: function() {changeActive(selectedHint + 1);},
+      PageUp: function() {changeActive(selectedHint - screenAmount());},
+      PageDown: function() {changeActive(selectedHint + screenAmount());},
+      Home: function() {changeActive(0);},
+      End: function() {changeActive(completions.length - 1);},
+      Enter: pick,
+      Tab: pick,
+      Esc: close
+    };
+    if (options.customKeys) for (var key in options.customKeys) if (options.customKeys.hasOwnProperty(key)) {
+      var val = options.customKeys[key];
+      if (/^(Up|Down|Enter|Esc)$/.test(key)) val = ourMap[val];
+      ourMap[key] = val;
+    }
+
+    cm.addKeyMap(ourMap);
+    cm.on("cursorActivity", cursorActivity);
+    var closingOnBlur;
+    function onBlur(){ closingOnBlur = setTimeout(close, 100); };
+    function onFocus(){ clearTimeout(closingOnBlur); };
+    cm.on("blur", onBlur);
+    cm.on("focus", onFocus);
+    var startScroll = cm.getScrollInfo();
+    function onScroll() {
+      var curScroll = cm.getScrollInfo(), editor = cm.getWrapperElement().getBoundingClientRect();
+      var newTop = top + startScroll.top - curScroll.top, point = newTop;
+      if (!below) point += hints.offsetHeight;
+      if (point <= editor.top || point >= editor.bottom) return close();
+      hints.style.top = newTop + "px";
+      hints.style.left = (left + startScroll.left - curScroll.left) + "px";
+    }
+    cm.on("scroll", onScroll);
+    CodeMirror.on(hints, "dblclick", function(e) {
+      var t = e.target || e.srcElement;
+      if (t.hintId != null) {selectedHint = t.hintId; pick();}
+    });
+    CodeMirror.on(hints, "click", function(e) {
+      var t = e.target || e.srcElement;
+      if (t.hintId != null) changeActive(t.hintId);
+    });
+    CodeMirror.on(hints, "mousedown", function() {
+      setTimeout(function(){cm.focus();}, 20);
+    });
+
+    var done = false, once;
+    function close() {
+      if (done) return;
+      done = true;
+      clearTimeout(once);
+      hints.parentNode.removeChild(hints);
+      cm.removeKeyMap(ourMap);
+      cm.off("cursorActivity", cursorActivity);
+      cm.off("blur", onBlur);
+      cm.off("focus", onFocus);
+      cm.off("scroll", onScroll);
+    }
+    function pick() {
+      pickCompletion(cm, data, completions[selectedHint]);
+      close();
+    }
+    var once, lastPos = cm.getCursor(), lastLen = cm.getLine(lastPos.line).length;
+    function cursorActivity() {
+      clearTimeout(once);
+
+      var pos = cm.getCursor(), line = cm.getLine(pos.line);
+      if (pos.line != lastPos.line || line.length - pos.ch != lastLen - lastPos.ch ||
+          pos.ch < startCh || cm.somethingSelected() ||
+          (pos.ch && closeOn.test(line.charAt(pos.ch - 1))))
+        close();
+      else
+        once = setTimeout(function(){close(); continued = true; startHinting();}, 70);
+    }
+    return true;
+  }
+
+  return startHinting();
+};
+
+
+/* BLOCK ENDS */
+
+
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/lib/codemirror/addon/hint/javascript-hint.js */
+
+(function () {
+  var Pos = CodeMirror.Pos;
+
+  function forEach(arr, f) {
+    for (var i = 0, e = arr.length; i < e; ++i) f(arr[i]);
+  }
+  
+  function arrayContains(arr, item) {
+    if (!Array.prototype.indexOf) {
+      var i = arr.length;
+      while (i--) {
+        if (arr[i] === item) {
+          return true;
+        }
+      }
+      return false;
+    }
+    return arr.indexOf(item) != -1;
+  }
+
+  function scriptHint(editor, keywords, getToken, options) {
+    // Find the token at the cursor
+    var cur = editor.getCursor(), token = getToken(editor, cur), tprop = token;
+    // If it's not a 'word-style' token, ignore the token.
+		if (!/^[\w$_]*$/.test(token.string)) {
+      token = tprop = {start: cur.ch, end: cur.ch, string: "", state: token.state,
+                       type: token.string == "." ? "property" : null};
+    }
+    // If it is a property, find out what it is a property of.
+    while (tprop.type == "property") {
+      tprop = getToken(editor, Pos(cur.line, tprop.start));
+      if (tprop.string != ".") return;
+      tprop = getToken(editor, Pos(cur.line, tprop.start));
+      if (tprop.string == ')') {
+        var level = 1;
+        do {
+          tprop = getToken(editor, Pos(cur.line, tprop.start));
+          switch (tprop.string) {
+          case ')': level++; break;
+          case '(': level--; break;
+          default: break;
+          }
+        } while (level > 0);
+        tprop = getToken(editor, Pos(cur.line, tprop.start));
+	if (tprop.type.indexOf("variable") === 0)
+	  tprop.type = "function";
+	else return; // no clue
+      }
+      if (!context) var context = [];
+      context.push(tprop);
+    }
+    return {list: getCompletions(token, context, keywords, options),
+            from: Pos(cur.line, token.start),
+            to: Pos(cur.line, token.end)};
+  }
+
+  CodeMirror.javascriptHint = function(editor, options) {
+    return scriptHint(editor, javascriptKeywords,
+                      function (e, cur) {return e.getTokenAt(cur);},
+                      options);
+  };
+
+  function getCoffeeScriptToken(editor, cur) {
+  // This getToken, it is for coffeescript, imitates the behavior of
+  // getTokenAt method in javascript.js, that is, returning "property"
+  // type and treat "." as indepenent token.
+    var token = editor.getTokenAt(cur);
+    if (cur.ch == token.start + 1 && token.string.charAt(0) == '.') {
+      token.end = token.start;
+      token.string = '.';
+      token.type = "property";
+    }
+    else if (/^\.[\w$_]*$/.test(token.string)) {
+      token.type = "property";
+      token.start++;
+      token.string = token.string.replace(/\./, '');
+    }
+    return token;
+  }
+
+  CodeMirror.coffeescriptHint = function(editor, options) {
+    return scriptHint(editor, coffeescriptKeywords, getCoffeeScriptToken, options);
+  };
+
+  var stringProps = ("charAt charCodeAt indexOf lastIndexOf substring substr slice trim trimLeft trimRight " +
+                     "toUpperCase toLowerCase split concat match replace search").split(" ");
+  var arrayProps = ("length concat join splice push pop shift unshift slice reverse sort indexOf " +
+                    "lastIndexOf every some filter forEach map reduce reduceRight ").split(" ");
+  var funcProps = "prototype apply call bind".split(" ");
+  var javascriptKeywords = ("break case catch continue debugger default delete do else false finally for function " +
+                  "if in instanceof new null return switch throw true try typeof var void while with").split(" ");
+  var coffeescriptKeywords = ("and break catch class continue delete do else extends false finally for " +
+                  "if in instanceof isnt new no not null of off on or return switch then throw true try typeof until void while with yes").split(" ");
+
+  function getCompletions(token, context, keywords, options) {
+    var found = [], start = token.string;
+    function maybeAdd(str) {
+      if (str.indexOf(start) == 0 && !arrayContains(found, str)) found.push(str);
+    }
+    function gatherCompletions(obj) {
+      if (typeof obj == "string") forEach(stringProps, maybeAdd);
+      else if (obj instanceof Array) forEach(arrayProps, maybeAdd);
+      else if (obj instanceof Function) forEach(funcProps, maybeAdd);
+      for (var name in obj) maybeAdd(name);
+    }
+
+    if (context) {
+      // If this is a property, see if it belongs to some object we can
+      // find in the current environment.
+      var obj = context.pop(), base;
+      if (obj.type.indexOf("variable") === 0) {
+        if (options && options.additionalContext)
+          base = options.additionalContext[obj.string];
+        base = base || window[obj.string];
+      } else if (obj.type == "string") {
+        base = "";
+      } else if (obj.type == "atom") {
+        base = 1;
+      } else if (obj.type == "function") {
+        if (window.jQuery != null && (obj.string == '$' || obj.string == 'jQuery') &&
+            (typeof window.jQuery == 'function'))
+          base = window.jQuery();
+        else if (window._ != null && (obj.string == '_') && (typeof window._ == 'function'))
+          base = window._();
+      }
+      while (base != null && context.length)
+        base = base[context.pop().string];
+      if (base != null) gatherCompletions(base);
+    }
+    else {
+      // If not, just look in the window object and any local scope
+      // (reading into JS mode internals to get at the local and global variables)
+      for (var v = token.state.localVars; v; v = v.next) maybeAdd(v.name);
+      for (var v = token.state.globalVars; v; v = v.next) maybeAdd(v.name);
+      gatherCompletions(window);
+      forEach(keywords, maybeAdd);
+    }
+    return found;
+  }
+})();
+
+
+/* BLOCK ENDS */
+
+
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/lib/codemirror/addon/fold/foldcode.js */
+
+CodeMirror.newFoldFunction = function(rangeFinder, widget) {
+  if (widget == null) widget = "\u2194";
+  if (typeof widget == "string") {
+    var text = document.createTextNode(widget);
+    widget = document.createElement("span");
+    widget.appendChild(text);
+    widget.className = "CodeMirror-foldmarker";
+  }
+
+  return function(cm, pos) {
+    if (typeof pos == "number") pos = CodeMirror.Pos(pos, 0);
+    var range = rangeFinder(cm, pos);
+    if (!range) return;
+
+    var present = cm.findMarksAt(range.from), cleared = 0;
+    for (var i = 0; i < present.length; ++i) {
+      if (present[i].__isFold) {
+        ++cleared;
+        present[i].clear();
+      }
+    }
+    if (cleared) return;
+
+    var myWidget = widget.cloneNode(true);
+    CodeMirror.on(myWidget, "mousedown", function() {myRange.clear();});
+    var myRange = cm.markText(range.from, range.to, {
+      replacedWith: myWidget,
+      clearOnEnter: true,
+      __isFold: true
+    });
+  };
+};
+
+
+/* BLOCK ENDS */
+
+
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/lib/codemirror/addon/fold/brace-fold.js */
+
+CodeMirror.braceRangeFinder = function(cm, start) {
+  var line = start.line, lineText = cm.getLine(line);
+  var at = lineText.length, startChar, tokenType;
+  for (;;) {
+    var found = lineText.lastIndexOf("{", at);
+    if (found < start.ch) break;
+    tokenType = cm.getTokenAt(CodeMirror.Pos(line, found + 1)).type;
+    if (!/^(comment|string)/.test(tokenType)) { startChar = found; break; }
+    at = found - 1;
+  }
+  if (startChar == null || lineText.lastIndexOf("}") > startChar) return;
+  var count = 1, lastLine = cm.lineCount(), end, endCh;
+  outer: for (var i = line + 1; i < lastLine; ++i) {
+    var text = cm.getLine(i), pos = 0;
+    for (;;) {
+      var nextOpen = text.indexOf("{", pos), nextClose = text.indexOf("}", pos);
+      if (nextOpen < 0) nextOpen = text.length;
+      if (nextClose < 0) nextClose = text.length;
+      pos = Math.min(nextOpen, nextClose);
+      if (pos == text.length) break;
+      if (cm.getTokenAt(CodeMirror.Pos(i, pos + 1)).type == tokenType) {
+        if (pos == nextOpen) ++count;
+        else if (!--count) { end = i; endCh = pos; break outer; }
+      }
+      ++pos;
+    }
+  }
+  if (end == null || end == line + 1) return;
+  return {from: CodeMirror.Pos(line, startChar + 1),
+          to: CodeMirror.Pos(end, endCh)};
+};
+
+
+/* BLOCK ENDS */
+
+
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/lib/codemirror/addon/fold/xml-fold.js */
+
+CodeMirror.tagRangeFinder = (function() {
+  var nameStartChar = "A-Z_a-z\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u02FF\\u0370-\\u037D\\u037F-\\u1FFF\\u200C-\\u200D\\u2070-\\u218F\\u2C00-\\u2FEF\\u3001-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFFD";
+  var nameChar = nameStartChar + "\-\:\.0-9\\u00B7\\u0300-\\u036F\\u203F-\\u2040";
+  var xmlTagStart = new RegExp("<(/?)([" + nameStartChar + "][" + nameChar + "]*)", "g");
+
+  return function(cm, start) {
+    var line = start.line, ch = start.ch, lineText = cm.getLine(line);
+
+    function nextLine() {
+      if (line >= cm.lastLine()) return;
+      ch = 0;
+      lineText = cm.getLine(++line);
+      return true;
+    }
+    function toTagEnd() {
+      for (;;) {
+        var gt = lineText.indexOf(">", ch);
+        if (gt == -1) { if (nextLine()) continue; else return; }
+        var lastSlash = lineText.lastIndexOf("/", gt);
+        var selfClose = lastSlash > -1 && /^\s*$/.test(lineText.slice(lastSlash + 1, gt));
+        ch = gt + 1;
+        return selfClose ? "selfClose" : "regular";
+      }
+    }
+    function toNextTag() {
+      for (;;) {
+        xmlTagStart.lastIndex = ch;
+        var found = xmlTagStart.exec(lineText);
+        if (!found) { if (nextLine()) continue; else return; }
+        ch = found.index + found[0].length;
+        return found;
+      }
+    }
+
+    var stack = [], startCh;
+    for (;;) {
+      var openTag = toNextTag(), end;
+      if (!openTag || line != start.line || !(end = toTagEnd())) return;
+      if (!openTag[1] && end != "selfClose") {
+        stack.push(openTag[2]);
+        startCh = ch;
+        break;
+      }
+    }
+
+    for (;;) {
+      var next = toNextTag(), end, tagLine = line, tagCh = ch - (next ? next[0].length : 0);
+      if (!next || !(end = toTagEnd())) return;
+      if (end == "selfClose") continue;
+      if (next[1]) { // closing tag
+        for (var i = stack.length - 1; i >= 0; --i) if (stack[i] == next[2]) {
+          stack.length = i;
+          break;
+        }
+        if (!stack.length) return {
+          from: CodeMirror.Pos(start.line, startCh),
+          to: CodeMirror.Pos(tagLine, tagCh)
+        };
+      } else { // opening tag
+        stack.push(next[2]);
+      }
+    }
+  };
+})();
+
+
+/* BLOCK ENDS */
+
+
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/lib/codemirror/addon/fold/indent-fold.js */
+
+CodeMirror.indentRangeFinder = function(cm, start) {
+  var tabSize = cm.getOption("tabSize"), firstLine = cm.getLine(start.line);
+  var myIndent = CodeMirror.countColumn(firstLine, null, tabSize);
+  for (var i = start.line + 1, end = cm.lineCount(); i < end; ++i) {
+    var curLine = cm.getLine(i);
+    if (CodeMirror.countColumn(curLine, null, tabSize) < myIndent &&
+        CodeMirror.countColumn(cm.getLine(i-1), null, tabSize) > myIndent)
+      return {from: CodeMirror.Pos(start.line, firstLine.length),
+              to: CodeMirror.Pos(i, curLine.length)};
+  }
+};
+
+
+/* BLOCK ENDS */
+
+
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/app/settings.coffee */
+
+var codeMirrorSettings;
+
+codeMirrorSettings = {
+  themes: [
+    {
+      title: "Ambiance",
+      value: "ambiance"
+    }, {
+      title: "Blackboard",
+      value: "blackboard"
+    }, {
+      title: "Cobalt",
+      value: "cobalt"
+    }, {
+      title: "Eclipse",
+      value: "eclipse"
+    }, {
+      title: "Elegant",
+      value: "elegant"
+    }, {
+      title: "Erlang Dark",
+      value: "erlang-dark"
+    }, {
+      title: "Lesser Dark",
+      value: "lesser-dark"
+    }, {
+      title: "Monokai",
+      value: "monokai"
+    }, {
+      title: "Neat",
+      value: "neat"
+    }, {
+      title: "Night",
+      value: "night"
+    }, {
+      title: "Ruby Blue",
+      value: "rubyblue"
+    }, {
+      title: "Solarized",
+      value: "solarized"
+    }, {
+      title: "Twilight",
+      value: "twilight"
+    }, {
+      title: "Vibrant Ink",
+      value: "vibrant-ink"
+    }, {
+      title: "Xq Dark",
+      value: "xq-dark"
+    }, {
+      title: "Xq Light",
+      value: "xq-light"
+    }
+  ],
+  modes: [
+    {
+      title: "JavaScript",
+      value: "javascript"
+    }, {
+      title: "CSS",
+      value: "css"
+    }, {
+      title: "CoffeeScript",
+      value: "coffeescript"
+    }, {
+      title: "PHP",
+      value: "php"
+    }
+  ],
+  sampleCode: "function getCompletions(token, context) {\n  var found = [], start = token.string;\n  function maybeAdd(str) {\n    if (str.indexOf(start) == 0) found.push(str);\n  }\n  function gatherCompletions(obj) {\n    if (typeof obj == \"string\") forEach(stringProps, maybeAdd);\n    else if (obj instanceof Array) forEach(arrayProps, maybeAdd);\n    else if (obj instanceof Function) forEach(funcProps, maybeAdd);\n    for (var name in obj) maybeAdd(name);\n  }\n\n  if (context) {\n    // If this is a property, see if it belongs to some object we can\n    // find in the current environment.\n    var obj = context.pop(), base;\n    if (obj.className == \"js-variable\")\n      base = window[obj.string];\n    else if (obj.className == \"js-string\")\n      base = \"\";\n    else if (obj.className == \"js-atom\")\n      base = 1;\n    while (base != null && context.length)\n      base = base[context.pop().string];\n    if (base != null) gatherCompletions(base);\n  }\n  else {\n    // If not, just look in the window object and any local scope\n    // (reading into JS mode internals to get at the local variables)\n    for (var v = token.state.localVars; v; v = v.next) maybeAdd(v.name);\n    gatherCompletions(window);\n    forEach(keywords, maybeAdd);\n  }\n  return found;\n}"
+};
+
+
+/* BLOCK ENDS */
+
+
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/app/settingsview.coffee */
+
+var CodeMirrorSettingsView,
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+CodeMirrorSettingsView = (function(_super) {
+
+  __extends(CodeMirrorSettingsView, _super);
+
+  function CodeMirrorSettingsView(options, data) {
+    var _this = this;
+    if (options == null) {
+      options = {};
+    }
+    options.cssClass = "codemirror-settings";
+    CodeMirrorSettingsView.__super__.constructor.call(this, options, data);
+    this.theme = new KDSelectBox({
+      selectOptions: codeMirrorSettings.themes,
+      callback: function(value) {
+        return _this.getDelegate().editor.emit("CodeMirrorThemeChanged", value);
+      }
+    });
+    this.syntax = new KDSelectBox({
+      selectOptions: codeMirrorSettings.modes,
+      callback: function(value) {
+        return _this.getDelegate().editor.emit("CodeMirrorModeChanged", value);
+      }
+    });
+  }
+
+  CodeMirrorSettingsView.prototype.pistachio = function() {
+    return "<p>Theme {{> this.theme}}</p>\n<p>Syntax {{> this.syntax}}</p>";
+  };
+
+  return CodeMirrorSettingsView;
+
+})(JView);
+
+
+/* BLOCK ENDS */
+
+
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/app/bottombar.coffee */
 
 var CodeMirrorBottomBar,
   __hasProp = {}.hasOwnProperty,
@@ -5984,6 +7059,7 @@ CodeMirrorBottomBar = (function(_super) {
   __extends(CodeMirrorBottomBar, _super);
 
   function CodeMirrorBottomBar(options, data) {
+    var _this = this;
     if (options == null) {
       options = {};
     }
@@ -5993,6 +7069,19 @@ CodeMirrorBottomBar = (function(_super) {
       cssClass: "codemirror-caret-pos caret-position section",
       partial: "1:1"
     });
+    this.settingsButton = new KDCustomHTMLView({
+      tagName: "div",
+      cssClass: "codemirror-settings-button",
+      click: function() {
+        var settingsView;
+        settingsView = _this.getDelegate().settingsView;
+        settingsView.show();
+        windowController.addLayer(settingsView);
+        return settingsView.on("ReceivedClickElsewhere", function() {
+          return settingsView.hide();
+        });
+      }
+    });
   }
 
   CodeMirrorBottomBar.prototype.updateCaretPos = function(posObj) {
@@ -6000,7 +7089,7 @@ CodeMirrorBottomBar = (function(_super) {
   };
 
   CodeMirrorBottomBar.prototype.pistachio = function() {
-    return "{{> this.caretPos}}";
+    return "{{> this.caretPos}}\n{{> this.settingsButton}}";
   };
 
   return CodeMirrorBottomBar;
@@ -6012,7 +7101,7 @@ CodeMirrorBottomBar = (function(_super) {
 
 
 
-/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/app/codemirroreditorcontainer.coffee */
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/app/editorcontainer.coffee */
 
 var CodeMirrorEditorContainer,
   __hasProp = {}.hasOwnProperty,
@@ -6052,7 +7141,7 @@ CodeMirrorEditorContainer = (function(_super) {
 
 
 
-/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/app/codemirrortopbar.coffee */
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/app/topbar.coffee */
 
 var CodeMirrorTopBar,
   __hasProp = {}.hasOwnProperty,
@@ -6079,49 +7168,160 @@ CodeMirrorTopBar = (function(_super) {
 
 
 
-/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/app/codemirroreditor.coffee */
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/app/editor.coffee */
 
 var CodeMirrorEditor,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-
-KD.enableLogs();
 
 CodeMirrorEditor = (function(_super) {
 
   __extends(CodeMirrorEditor, _super);
 
   function CodeMirrorEditor(options, data) {
+    var _this = this;
+    if (options == null) {
+      options = {};
+    }
+    CodeMirrorEditor.__super__.constructor.call(this, options, data);
+    options = this.getOptions();
+    CodeMirror.modeURL = "https://" + nickname + ".koding.com/.applications/codemirror/lib/codemirror/mode/%N/%N.js";
+    CodeMirror.commands.autocomplete = function(cm) {
+      return CodeMirror.showHint(cm, CodeMirror.javascriptHint);
+    };
+    this.editor = CodeMirror(options.container, {
+      tabSize: options.tabSize || 2,
+      lineNumbers: options.lineNumbers || true,
+      autofocus: options.autofocus || true,
+      theme: options.theme || "ambiance",
+      styleActiveLine: options.highlightLine || true,
+      highlightSelectionMatches: options.highlightSelection || true,
+      value: options.value || codeMirrorSettings.sampleCode,
+      matchBrackets: options.matchBrackets || true,
+      autoCloseBrackets: options.closeBrackets || true,
+      extraKeys: {
+        "Ctrl-Space": "autocomplete",
+        "Ctrl-Q": function() {
+          log("fold called");
+          return CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder)(_this.editor, _this.editor.getCursor().line);
+        },
+        "D-D": function() {
+          return console.log("dd");
+        },
+        "Ctrl-S": function() {
+          return console.log("ctrls");
+        },
+        "Cmd-S": function() {
+          return console.log("cmds");
+        },
+        "Alt-S": function() {
+          return console.log("alts");
+        },
+        "Option-S": function() {
+          return console.log("options");
+        }
+      }
+    });
+    this.editor.on("cursorActivity", function() {
+      return _this.getDelegate().bottomBar.updateCaretPos(_this.editor.doc.getCursor());
+    });
+    this.editor.on("gutterClick", function(a, b) {
+      return CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder)(a, b);
+    });
+    this.on("CodeMirrorThemeChanged", function(themeName) {
+      return _this.updateTheme(themeName);
+    });
+    this.on("CodeMirrorModeChanged", function(modeName) {
+      log("mode name is changing to", modeName);
+      _this.editor.setOption("mode", modeName);
+      return CodeMirror.autoLoadMode(_this.editor, modeName);
+    });
+  }
+
+  CodeMirrorEditor.prototype.updateTheme = function(themeName) {
+    var command, styleId,
+      _this = this;
+    styleId = "codemirror-theme-" + themeName;
+    if (document.getElementById(styleId)) {
+      return this.editor.setOption("theme", themeName);
+    }
+    command = "curl https://" + nickname + ".koding.com/.applications/codemirror/lib/codemirror/theme/" + themeName + ".css";
+    return kiteController.run(command, function(err, res) {
+      var style;
+      console.log("kite request started");
+      style = document.createElement("style");
+      style.type = "text/css";
+      style.id = styleId;
+      if (style.styleSheet) {
+        style.styleSheet.cssText = res;
+      } else {
+        style.appendChild(document.createTextNode(res));
+      }
+      document.head.appendChild(style);
+      console.log("style tag created");
+      return _this.editor.setOption("theme", themeName);
+    });
+  };
+
+  return CodeMirrorEditor;
+
+})(KDObject);
+
+
+/* BLOCK ENDS */
+
+
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/app/editorview.coffee */
+
+var CodeMirrorEditorView, kiteController, nickname, windowController,
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+KD.enableLogs();
+
+nickname = KD.whoami().profile.nickname;
+
+windowController = KD.getSingleton("windowController");
+
+kiteController = KD.getSingleton("kiteController");
+
+CodeMirrorEditorView = (function(_super) {
+
+  __extends(CodeMirrorEditorView, _super);
+
+  function CodeMirrorEditorView(options, data) {
     if (options == null) {
       options = {};
     }
     options.cssClass = "codemirror";
-    CodeMirrorEditor.__super__.constructor.call(this, options, data);
+    CodeMirrorEditorView.__super__.constructor.call(this, options, data);
     this.editor = null;
     this.topBar = new CodeMirrorTopBar;
     this.container = new CodeMirrorEditorContainer;
-    this.bottomBar = new CodeMirrorBottomBar;
+    this.bottomBar = new CodeMirrorBottomBar({
+      delegate: this
+    });
+    this.settingsView = new CodeMirrorSettingsView({
+      delegate: this
+    });
+    this.settingsView.hide();
+    this.findAndReplaceView = new KDView;
   }
 
-  CodeMirrorEditor.prototype.viewAppended = function() {
-    var _this = this;
-    CodeMirrorEditor.__super__.viewAppended.apply(this, arguments);
-    this.editor = window.editor = CodeMirror(this.container.getDomElement()[0], {
-      tabSize: 2,
-      lineNumbers: true,
-      autofocus: true,
-      theme: "ambiance"
-    });
-    return this.editor.on("cursorActivity", function() {
-      return _this.bottomBar.updateCaretPos(_this.editor.doc.getCursor());
+  CodeMirrorEditorView.prototype.viewAppended = function() {
+    CodeMirrorEditorView.__super__.viewAppended.apply(this, arguments);
+    return this.editor = window.editor = new CodeMirrorEditor({
+      container: this.container.getDomElement()[0],
+      delegate: this
     });
   };
 
-  CodeMirrorEditor.prototype.pistachio = function() {
-    return "{{> this.topBar}}\n{{> this.container}}\n{{> this.bottomBar}}";
+  CodeMirrorEditorView.prototype.pistachio = function() {
+    return "{{> this.topBar}}\n{{> this.container}}\n{{> this.bottomBar}}\n{{> this.findAndReplaceView}} \n{{> this.settingsView}}";
   };
 
-  return CodeMirrorEditor;
+  return CodeMirrorEditorView;
 
 })(JView);
 
@@ -6133,7 +7333,7 @@ CodeMirrorEditor = (function(_super) {
 /* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/index.coffee */
 
 
-appView.addSubView(new CodeMirrorEditor);
+appView.addSubView(new CodeMirrorEditorView);
 
 
 /* BLOCK ENDS */

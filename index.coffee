@@ -1,1 +1,1 @@
-appView.addSubView new CodeMirrorEditor
+appView.addSubView new CodeMirrorEditorView

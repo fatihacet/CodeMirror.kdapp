@@ -1,2 +1,70 @@
 /* .codemirror .application-page { padding: 0; } */
-.codemirror .CodeMirror { height: 100%; }
+.codemirror .CodeMirror { 
+  height:      100%;
+}
+.codemirror .codemirror-settings-button {
+  background:  url(http://koding.com/images/_kd.sprites.png) -59px -301px;
+  width:       17px;
+  height:      18px;
+  border-left: 1px solid #e2e2e2;
+  position:    absolute;
+  right:       3px;
+}
+.codemirror-settings {
+  width: 400px;
+  position: absolute;
+  height: 100px;
+  bottom: 20px;
+  z-index: 999;
+  right: 0px;
+  background: #FFF;
+}
+.CodeMirror-activeline-background {
+  background: #353535 !important;
+}
+.CodeMirror-focused .cm-matchhighlight {
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVQI12NgYGBgkKzc8x9CMDAwAAAmhwSbidEoSQAAAABJRU5ErkJggg==);
+  background-position: bottom;
+  background-repeat: repeat-x;
+}
+
+
+/* show-hint.css */
+.CodeMirror-hints {
+  position: absolute;
+  z-index: 10;
+  overflow: hidden;
+  list-style: none;
+
+  margin: 0;
+  padding: 2px;
+
+  -webkit-box-shadow: 2px 3px 5px rgba(0,0,0,.2);
+  -moz-box-shadow: 2px 3px 5px rgba(0,0,0,.2);
+  box-shadow: 2px 3px 5px rgba(0,0,0,.2);
+  border-radius: 3px;
+  border: 1px solid silver;
+
+  background: white;
+  font-size: 90%;
+  font-family: monospace;
+
+  max-height: 20em;
+  overflow-y: auto;
+}
+
+.CodeMirror-hint {
+  margin: 0;
+  padding: 0 4px;
+  border-radius: 2px;
+  max-width: 19em;
+  overflow: hidden;
+  white-space: pre;
+  color: black;
+  cursor: pointer;
+}
+
+.CodeMirror-hint-active {
+  background: #08f;
+  color: white;
+}
