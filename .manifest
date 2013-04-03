@@ -13,6 +13,9 @@
     "blocks": {
       "app": {
         "files": [
+          "./internal/applicationtabview.coffee",
+          "./internal/applicationtabhandleholder.coffee",
+          
           "./lib/codemirror/lib/codemirror.js",
           
           "./lib/codemirror/mode/javascript/javascript.js",
@@ -26,6 +29,7 @@
           
           "./lib/codemirror/addon/edit/matchbrackets.js",
           "./lib/codemirror/addon/edit/closebrackets.js",
+          "./lib/codemirror/addon/edit/closetag.js",
           
           "./lib/codemirror/addon/hint/show-hint.js",
           "./lib/codemirror/addon/hint/javascript-hint.js",
@@ -41,7 +45,7 @@
           "./app/editorcontainer.coffee",
           "./app/topbar.coffee",
           "./app/editor.coffee",
-          "./app/editorview.coffee",
+          "./app/view.coffee",
           "./index.coffee"
         ]
       }

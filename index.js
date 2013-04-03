@@ -1,8 +1,103 @@
-// Compiled by Koding Servers at Mon Apr 01 2013 14:12:01 GMT-0700 (PDT) in server time
+// Compiled by Koding Servers at Wed Apr 03 2013 14:09:25 GMT-0700 (PDT) in server time
 
 (function() {
 
 /* KDAPP STARTS */
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/internal/applicationtabview.coffee */
+
+var ApplicationTabView,
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+ApplicationTabView = (function(_super) {
+
+  __extends(ApplicationTabView, _super);
+
+  function ApplicationTabView(options, data) {
+    var appView,
+      _this = this;
+    if (options == null) {
+      options = {};
+    }
+    options.resizeTabHandles = true;
+    options.lastTabHandleMargin = 40;
+    ApplicationTabView.__super__.constructor.call(this, options, data);
+    appView = this.getDelegate();
+    this.on("PaneRemoved", function() {
+      return _this.tabHandleContainer.repositionPlusHandle(_this.handles);
+    });
+    this.on('PaneAdded', function() {
+      return _this.tabHandleContainer.repositionPlusHandle(_this.handles);
+    });
+  }
+
+  return ApplicationTabView;
+
+})(KDTabView);
+
+
+/* BLOCK ENDS */
+
+
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/internal/applicationtabhandleholder.coffee */
+
+var ApplicationTabHandleHolder,
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+ApplicationTabHandleHolder = (function(_super) {
+
+  __extends(ApplicationTabHandleHolder, _super);
+
+  function ApplicationTabHandleHolder(options, data) {
+    var _ref;
+    if (options == null) {
+      options = {};
+    }
+    if ((_ref = options.cssClass) == null) {
+      options.cssClass = "application-tab-handle-holder";
+    }
+    options.bind = "mouseenter mouseleave";
+    ApplicationTabHandleHolder.__super__.constructor.call(this, options, data);
+    this.on('PlusHandleClicked', function() {
+      return this.getDelegate().addNewTab();
+    });
+  }
+
+  ApplicationTabHandleHolder.prototype.viewAppended = function() {
+    return this.addPlusHandle();
+  };
+
+  ApplicationTabHandleHolder.prototype.addPlusHandle = function() {
+    var _this = this;
+    return this.addSubView(this.plusHandle = new KDCustomHTMLView({
+      cssClass: "kdtabhandle visible-tab-handle plus",
+      partial: "<span class='icon'></span>",
+      delegate: this,
+      click: function() {
+        return _this.emit("PlusHandleClicked");
+      }
+    }));
+  };
+
+  ApplicationTabHandleHolder.prototype.repositionPlusHandle = function(handles) {
+    var handlesLength;
+    handlesLength = handles.length;
+    if (handlesLength) {
+      return this.plusHandle.$().insertAfter(handles[handlesLength - 1].$());
+    }
+  };
+
+  return ApplicationTabHandleHolder;
+
+})(KDView);
+
+
+/* BLOCK ENDS */
+
+
 
 /* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/lib/codemirror/lib/codemirror.js */
 
@@ -6427,6 +6522,99 @@ CodeMirror.defineMIME("application/typescript", { name: "javascript", typescript
 
 
 
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/lib/codemirror/addon/edit/closetag.js */
+
+/**
+ * Tag-closer extension for CodeMirror.
+ *
+ * This extension adds an "autoCloseTags" option that can be set to
+ * either true to get the default behavior, or an object to further
+ * configure its behavior.
+ *
+ * These are supported options:
+ *
+ * `whenClosing` (default true)
+ *   Whether to autoclose when the '/' of a closing tag is typed.
+ * `whenOpening` (default true)
+ *   Whether to autoclose the tag when the final '>' of an opening
+ *   tag is typed.
+ * `dontCloseTags` (default is empty tags for HTML, none for XML)
+ *   An array of tag names that should not be autoclosed.
+ * `indentTags` (default is block tags for HTML, none for XML)
+ *   An array of tag names that should, when opened, cause a
+ *   blank line to be added inside the tag, and the blank line and
+ *   closing line to be indented.
+ *
+ * See demos/closetag.html for a usage example.
+ */
+
+(function() {
+  CodeMirror.defineOption("autoCloseTags", false, function(cm, val, old) {
+    if (val && (old == CodeMirror.Init || !old)) {
+      var map = {name: "autoCloseTags"};
+      if (typeof val != "object" || val.whenClosing)
+        map["'/'"] = function(cm) { return autoCloseTag(cm, '/'); };
+      if (typeof val != "object" || val.whenOpening)
+        map["'>'"] = function(cm) { return autoCloseTag(cm, '>'); };
+      cm.addKeyMap(map);
+    } else if (!val && (old != CodeMirror.Init && old)) {
+      cm.removeKeyMap("autoCloseTags");
+    }
+  });
+
+  var htmlDontClose = ["area", "base", "br", "col", "command", "embed", "hr", "img", "input", "keygen", "link", "meta", "param",
+                       "source", "track", "wbr"];
+  var htmlIndent = ["applet", "blockquote", "body", "button", "div", "dl", "fieldset", "form", "frameset", "h1", "h2", "h3", "h4",
+                    "h5", "h6", "head", "html", "iframe", "layer", "legend", "object", "ol", "p", "select", "table", "ul"];
+
+  function autoCloseTag(cm, ch) {
+    var pos = cm.getCursor(), tok = cm.getTokenAt(pos);
+    var inner = CodeMirror.innerMode(cm.getMode(), tok.state), state = inner.state;
+    if (inner.mode.name != "xml") return CodeMirror.Pass;
+
+    var opt = cm.getOption("autoCloseTags"), html = inner.mode.configuration == "html";
+    var dontCloseTags = (typeof opt == "object" && opt.dontCloseTags) || (html && htmlDontClose);
+    var indentTags = (typeof opt == "object" && opt.indentTags) || (html && htmlIndent);
+
+    if (ch == ">" && state.tagName) {
+      var tagName = state.tagName;
+      if (tok.end > pos.ch) tagName = tagName.slice(0, tagName.length - tok.end + pos.ch);
+      var lowerTagName = tagName.toLowerCase();
+      // Don't process the '>' at the end of an end-tag or self-closing tag
+      if (tok.type == "tag" && state.type == "closeTag" || tok.string.indexOf("/") > -1 ||
+          dontCloseTags && indexOf(dontCloseTags, lowerTagName) > -1)
+        return CodeMirror.Pass;
+
+      var doIndent = indentTags && indexOf(indentTags, lowerTagName) > -1;
+      var curPos = doIndent ? CodeMirror.Pos(pos.line + 1, 0) : CodeMirror.Pos(pos.line, pos.ch + 1);
+      cm.replaceSelection(">" + (doIndent ? "\n\n" : "") + "</" + tagName + ">",
+                          {head: curPos, anchor: curPos});
+      if (doIndent) {
+        cm.indentLine(pos.line + 1);
+        cm.indentLine(pos.line + 2);
+      }
+      return;
+    } else if (ch == "/" && tok.string == "<") {
+      var tagName = state.context && state.context.tagName;
+      if (tagName) cm.replaceSelection("/" + tagName + ">", "end");
+      return;
+    }
+    return CodeMirror.Pass;
+  }
+
+  function indexOf(collection, elt) {
+    if (collection.indexOf) return collection.indexOf(elt);
+    for (var i = 0, e = collection.length; i < e; ++i)
+      if (collection[i] == elt) return i;
+    return -1;
+  }
+})();
+
+
+/* BLOCK ENDS */
+
+
+
 /* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/lib/codemirror/addon/hint/show-hint.js */
 
 CodeMirror.showHint = function(cm, getHints, options) {
@@ -7117,19 +7305,36 @@ CodeMirrorEditorContainer = (function(_super) {
     }
     options.cssClass = "codemirror-editor-container";
     CodeMirrorEditorContainer.__super__.constructor.call(this, options, data);
+    this.editor = null;
+    this.topBar = new CodeMirrorTopBar;
+    this.container = new KDView({
+      cssClass: "codemirror-editor"
+    });
+    this.bottomBar = new CodeMirrorBottomBar({
+      delegate: this
+    });
+    this.settingsView = new CodeMirrorSettingsView({
+      delegate: this
+    });
+    this.settingsView.hide();
+    this.findAndReplaceView = new KDView;
   }
 
   CodeMirrorEditorContainer.prototype.viewAppended = function() {
     CodeMirrorEditorContainer.__super__.viewAppended.apply(this, arguments);
+    this.editor = window.editor = new CodeMirrorEditor({
+      container: this.container.getDomElement()[0],
+      delegate: this
+    });
     return this.resize();
   };
 
   CodeMirrorEditorContainer.prototype.resize = function() {
-    var appViewPadding, bottomBarHeight, topBarHeight;
-    appViewPadding = 10;
-    topBarHeight = 38;
-    bottomBarHeight = 21;
-    return this.setHeight(appView.getHeight() - topBarHeight - bottomBarHeight - appViewPadding);
+    return this.container.setHeight(appView.getHeight() - 90);
+  };
+
+  CodeMirrorEditorContainer.prototype.pistachio = function() {
+    return "{{> this.topBar}}\n{{> this.container}}\n{{> this.bottomBar}}\n{{> this.findAndReplaceView}} \n{{> this.settingsView}}";
   };
 
   return CodeMirrorEditorContainer;
@@ -7194,31 +7399,22 @@ CodeMirrorEditor = (function(_super) {
       lineNumbers: options.lineNumbers || true,
       autofocus: options.autofocus || true,
       theme: options.theme || "ambiance",
+      value: options.value || codeMirrorSettings.sampleCode,
       styleActiveLine: options.highlightLine || true,
       highlightSelectionMatches: options.highlightSelection || true,
-      value: options.value || codeMirrorSettings.sampleCode,
       matchBrackets: options.matchBrackets || true,
       autoCloseBrackets: options.closeBrackets || true,
+      autoCloseTags: options.closeTags || true,
       extraKeys: {
         "Ctrl-Space": "autocomplete",
         "Ctrl-Q": function() {
-          log("fold called");
-          return CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder)(_this.editor, _this.editor.getCursor().line);
+          return _this.fold;
         },
-        "D-D": function() {
-          return console.log("dd");
+        "Alt-O": function() {
+          return _this.moveFileToLeft();
         },
-        "Ctrl-S": function() {
-          return console.log("ctrls");
-        },
-        "Cmd-S": function() {
-          return console.log("cmds");
-        },
-        "Alt-S": function() {
-          return console.log("alts");
-        },
-        "Option-S": function() {
-          return console.log("options");
+        "Alt-P": function() {
+          return _this.moveFileToRight();
         }
       }
     });
@@ -7238,6 +7434,25 @@ CodeMirrorEditor = (function(_super) {
     });
   }
 
+  CodeMirrorEditor.prototype.fold = function() {
+    return CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder)(this.editor, this.editor.getCursor().line);
+  };
+
+  CodeMirrorEditor.prototype.moveFileToLeft = function() {
+    return this.getAppView().emit("CodeMirrorMoveFileToLeft");
+  };
+
+  CodeMirrorEditor.prototype.moveFileToRight = function() {
+    return this.getAppView().emit("CodeMirrorMoveFileToRight");
+  };
+
+  CodeMirrorEditor.prototype.getAppView = function() {
+    var codeMirrorView, editorContainer;
+    editorContainer = this.getDelegate();
+    codeMirrorView = editorContainer.getDelegate();
+    return codeMirrorView;
+  };
+
   CodeMirrorEditor.prototype.updateTheme = function(themeName) {
     var command, styleId,
       _this = this;
@@ -7248,7 +7463,7 @@ CodeMirrorEditor = (function(_super) {
     command = "curl https://" + nickname + ".koding.com/.applications/codemirror/lib/codemirror/theme/" + themeName + ".css";
     return kiteController.run(command, function(err, res) {
       var style;
-      console.log("kite request started");
+      log("kite request started");
       style = document.createElement("style");
       style.type = "text/css";
       style.id = styleId;
@@ -7258,7 +7473,7 @@ CodeMirrorEditor = (function(_super) {
         style.appendChild(document.createTextNode(res));
       }
       document.head.appendChild(style);
-      console.log("style tag created");
+      log("style tag created");
       return _this.editor.setOption("theme", themeName);
     });
   };
@@ -7272,9 +7487,9 @@ CodeMirrorEditor = (function(_super) {
 
 
 
-/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/app/editorview.coffee */
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/app/view.coffee */
 
-var CodeMirrorEditorView, kiteController, nickname, windowController,
+var CodeMirrorView, kiteController, nickname, windowController,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -7286,42 +7501,99 @@ windowController = KD.getSingleton("windowController");
 
 kiteController = KD.getSingleton("kiteController");
 
-CodeMirrorEditorView = (function(_super) {
+CodeMirrorView = (function(_super) {
 
-  __extends(CodeMirrorEditorView, _super);
+  __extends(CodeMirrorView, _super);
 
-  function CodeMirrorEditorView(options, data) {
+  function CodeMirrorView(options, data) {
+    var _this = this;
     if (options == null) {
       options = {};
     }
     options.cssClass = "codemirror";
-    CodeMirrorEditorView.__super__.constructor.call(this, options, data);
-    this.editor = null;
-    this.topBar = new CodeMirrorTopBar;
-    this.container = new CodeMirrorEditorContainer;
-    this.bottomBar = new CodeMirrorBottomBar({
-      delegate: this
+    CodeMirrorView.__super__.constructor.call(this, options, data);
+    this.tabViews = [];
+    this.isSecondPaneVisible = false;
+    this.splitView = new KDSplitView({
+      cssClass: "codemirror-split-view",
+      type: "vertical",
+      resizable: true,
+      sizes: ["100%", null],
+      views: [this.createNewTabView(), this.createNewTabView()]
     });
-    this.settingsView = new CodeMirrorSettingsView({
-      delegate: this
+    this.splitView.on("viewAppended", function() {
+      _this.setSplitResizerVisibility();
+      _this.addNewTab(_this.getTabPaneByIndex(0));
+      return _this.addNewTab(_this.getTabPaneByIndex(0));
     });
-    this.settingsView.hide();
-    this.findAndReplaceView = new KDView;
+    this.on("CodeMirrorMoveFileToRight", function() {
+      _this.splitView.resizePanel("50%", 1, function() {
+        var pane;
+        pane = _this.tabViews[0].getActivePane();
+        debugger;
+        return _this.tabViews[0].removePane(pane);
+      });
+      return _this.isSecondPaneVisible = true;
+    });
+    this.on("CodeMirrorMoveFileToLeft", function() {
+      return log("to left");
+    });
   }
 
-  CodeMirrorEditorView.prototype.viewAppended = function() {
-    CodeMirrorEditorView.__super__.viewAppended.apply(this, arguments);
-    return this.editor = window.editor = new CodeMirrorEditor({
-      container: this.container.getDomElement()[0],
+  CodeMirrorView.prototype.getTabPaneByIndex = function(index) {
+    return this.tabViews[index];
+  };
+
+  CodeMirrorView.prototype.setSplitResizerVisibility = function(shouldShow) {
+    var methodName, subView, subViews, _i, _len, _results;
+    if (shouldShow == null) {
+      shouldShow = false;
+    }
+    methodName = shouldShow ? "show" : "hide";
+    subViews = this.splitView.getSubViews();
+    _results = [];
+    for (_i = 0, _len = subViews.length; _i < _len; _i++) {
+      subView = subViews[_i];
+      if (subView instanceof KDSplitResizer) {
+        _results.push(subView[methodName]());
+      }
+    }
+    return _results;
+  };
+
+  CodeMirrorView.prototype.createNewTabView = function() {
+    var holderView, tabHandleContainer, tabView;
+    holderView = new KDView;
+    holderView.addSubView(tabHandleContainer = new ApplicationTabHandleHolder({
       delegate: this
+    }));
+    holderView.addSubView(tabView = new ApplicationTabView({
+      delegate: this,
+      tabHandleContainer: tabHandleContainer
+    }));
+    this.tabViews.push(tabView);
+    return holderView;
+  };
+
+  CodeMirrorView.prototype.addNewTab = function(tabView, file) {
+    var editorContainer, pane;
+    file = file || FSHelper.createFileFromPath('localfile:/Untitled.txt');
+    editorContainer = new CodeMirrorEditorContainer({
+      delegate: this
+    }, file);
+    pane = new KDTabPaneView({
+      name: file.name || 'Untitled.txt',
+      editorContainer: editorContainer
     });
+    tabView.addPane(pane);
+    return pane.addSubView(editorContainer);
   };
 
-  CodeMirrorEditorView.prototype.pistachio = function() {
-    return "{{> this.topBar}}\n{{> this.container}}\n{{> this.bottomBar}}\n{{> this.findAndReplaceView}} \n{{> this.settingsView}}";
+  CodeMirrorView.prototype.pistachio = function() {
+    return "{{> this.splitView}}";
   };
 
-  return CodeMirrorEditorView;
+  return CodeMirrorView;
 
 })(JView);
 
@@ -7333,7 +7605,7 @@ CodeMirrorEditorView = (function(_super) {
 /* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/index.coffee */
 
 
-appView.addSubView(new CodeMirrorEditorView);
+appView.addSubView(new CodeMirrorView);
 
 
 /* BLOCK ENDS */
