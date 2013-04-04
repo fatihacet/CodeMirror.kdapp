@@ -12,8 +12,10 @@ class CodeMirrorView extends JView
     
     super options, data
     
-    @tabViews            = []
-    @isSecondPaneVisible = no
+    @tabViews               = []
+    @activeTabView          = null
+    @isFirstTabViewVisible  = yes
+    @isSecondTabViewVisible = no
     
     @splitView = new KDSplitView
       cssClass    : "codemirror-split-view"
@@ -24,23 +26,46 @@ class CodeMirrorView extends JView
     
     @splitView.on "viewAppended", =>
       @setSplitResizerVisibility()
-      @addNewTab @getTabPaneByIndex 0
-      @addNewTab @getTabPaneByIndex 0
+      @addNewTab @getTabViewByIndex 0
+      @addNewTab @getTabViewByIndex 0
+      @addNewTab @getTabViewByIndex 0
+      @addNewTab @getTabViewByIndex 0
+      @addNewTab @getTabViewByIndex 0
+      @addNewTab @getTabViewByIndex 0
+      @addNewTab @getTabViewByIndex 0
       
-    @on "CodeMirrorMoveFileToRight", =>
-      @splitView.resizePanel "50%", 1, =>
-        pane = @tabViews[0].getActivePane()
-        debugger
-        @tabViews[0].removePane pane
-        
-        # @addNewTab @tabViews[1], 
-        
-      @isSecondPaneVisible = yes
+    @on "CodeMirrorMoveFile", (direction) => 
+      @moveFile direction
+      @setSplitResizerVisibility yes
       
-    @on "CodeMirrorMoveFileToLeft", =>
-      log "to left"
+    @on "CodeMirrorSetActiveTabView", (tabView) =>
+      @activeTabView = tabView
+      
+  moveFileHelper: (direction) ->
+    activeTabView   = @activeTabView
+    activeTabViewIndex  = @tabViews.indexOf activeTabView
+    return if (direction is "right" and activeTabViewIndex is 1) or (direction is "left" and activeTabViewIndex is 0)
+    activePane      = activeTabView.getActivePane()
+    editorContainer = activePane.getOptions().editorContainer
+    {editor}  = editorContainer
+    content   = editor.getValue()
+    file      = editorContainer.getData()
+    
+    activeTabView.removePane activePane
+    targetIndex = if activeTabViewIndex is 0 then 1 else 0 
+    targetTabView = @tabViews[targetIndex]
+    @addNewTab targetTabView, file, content
+    
+    # hide empty view if activeTabView.getSubViews().length is 0
   
-  getTabPaneByIndex: (index) -> return @tabViews[index]
+  moveFile: (direction) ->
+    return @moveFileHelper direction if @isSecondTabViewVisible
+    
+    @splitView.resizePanel "50%", 1, => 
+      @moveFileHelper direction
+      @isSecondTabViewVisible = yes
+  
+  getTabViewByIndex: (index) -> return @tabViews[index]
   
   setSplitResizerVisibility: (shouldShow = no) ->
     methodName = if shouldShow then "show" else "hide"
@@ -61,10 +86,15 @@ class CodeMirrorView extends JView
     @tabViews.push tabView
     
     return holderView
-    
-  addNewTab: (tabView, file) ->
+  
+  addNewTab: (tabView, file, content) ->
     file = file or FSHelper.createFileFromPath 'localfile:/Untitled.txt'
-    editorContainer = new CodeMirrorEditorContainer delegate: @, file
+    
+    editorContainer = new CodeMirrorEditorContainer {
+      delegate : @
+      content
+      tabView
+    } , file
     
     pane = new KDTabPaneView
       name             : file.name or 'Untitled.txt'

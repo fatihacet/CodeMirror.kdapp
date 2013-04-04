@@ -30,7 +30,12 @@ class CodeMirrorEditor extends KDObject
     
     # internal editor events
     @editor.on "cursorActivity", => 
-      @getDelegate().bottomBar.updateCaretPos @editor.doc.getCursor()
+      editorContainer = @getDelegate()
+      applicationView = editorContainer.getDelegate()
+      
+      editorContainer.bottomBar.updateCaretPos @editor.getDoc().getCursor()
+      
+      applicationView.emit "CodeMirrorSetActiveTabView", editorContainer.getOptions().tabView
       
     @editor.on "gutterClick", (a, b) => 
       CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder) a, b
@@ -43,13 +48,15 @@ class CodeMirrorEditor extends KDObject
       log "mode name is changing to", modeName
       @editor.setOption "mode", modeName
       CodeMirror.autoLoadMode @editor, modeName
+  
+  getValue: -> return @editor.getValue()
       
   fold: ->
     CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder) @editor, @editor.getCursor().line
     
-  moveFileToLeft: -> @getAppView().emit "CodeMirrorMoveFileToLeft"
+  moveFileToLeft:  -> @getAppView().emit "CodeMirrorMoveFile", "left"
     
-  moveFileToRight: -> @getAppView().emit "CodeMirrorMoveFileToRight"
+  moveFileToRight: -> @getAppView().emit "CodeMirrorMoveFile", "right"
     
   getAppView: ->
     editorContainer = @getDelegate()

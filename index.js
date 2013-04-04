@@ -1,4 +1,4 @@
-// Compiled by Koding Servers at Wed Apr 03 2013 14:09:25 GMT-0700 (PDT) in server time
+// Compiled by Koding Servers at Wed Apr 03 2013 17:51:16 GMT-0700 (PDT) in server time
 
 (function() {
 
@@ -7322,9 +7322,10 @@ CodeMirrorEditorContainer = (function(_super) {
 
   CodeMirrorEditorContainer.prototype.viewAppended = function() {
     CodeMirrorEditorContainer.__super__.viewAppended.apply(this, arguments);
-    this.editor = window.editor = new CodeMirrorEditor({
+    this.editor = new CodeMirrorEditor({
+      delegate: this,
       container: this.container.getDomElement()[0],
-      delegate: this
+      value: this.getOptions().content
     });
     return this.resize();
   };
@@ -7419,7 +7420,11 @@ CodeMirrorEditor = (function(_super) {
       }
     });
     this.editor.on("cursorActivity", function() {
-      return _this.getDelegate().bottomBar.updateCaretPos(_this.editor.doc.getCursor());
+      var applicationView, editorContainer;
+      editorContainer = _this.getDelegate();
+      applicationView = editorContainer.getDelegate();
+      editorContainer.bottomBar.updateCaretPos(_this.editor.getDoc().getCursor());
+      return applicationView.emit("CodeMirrorSetActiveTabView", editorContainer.getOptions().tabView);
     });
     this.editor.on("gutterClick", function(a, b) {
       return CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder)(a, b);
@@ -7434,16 +7439,20 @@ CodeMirrorEditor = (function(_super) {
     });
   }
 
+  CodeMirrorEditor.prototype.getValue = function() {
+    return this.editor.getValue();
+  };
+
   CodeMirrorEditor.prototype.fold = function() {
     return CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder)(this.editor, this.editor.getCursor().line);
   };
 
   CodeMirrorEditor.prototype.moveFileToLeft = function() {
-    return this.getAppView().emit("CodeMirrorMoveFileToLeft");
+    return this.getAppView().emit("CodeMirrorMoveFile", "left");
   };
 
   CodeMirrorEditor.prototype.moveFileToRight = function() {
-    return this.getAppView().emit("CodeMirrorMoveFileToRight");
+    return this.getAppView().emit("CodeMirrorMoveFile", "right");
   };
 
   CodeMirrorEditor.prototype.getAppView = function() {
@@ -7513,7 +7522,9 @@ CodeMirrorView = (function(_super) {
     options.cssClass = "codemirror";
     CodeMirrorView.__super__.constructor.call(this, options, data);
     this.tabViews = [];
-    this.isSecondPaneVisible = false;
+    this.activeTabView = null;
+    this.isFirstTabViewVisible = true;
+    this.isSecondTabViewVisible = false;
     this.splitView = new KDSplitView({
       cssClass: "codemirror-split-view",
       type: "vertical",
@@ -7523,24 +7534,53 @@ CodeMirrorView = (function(_super) {
     });
     this.splitView.on("viewAppended", function() {
       _this.setSplitResizerVisibility();
-      _this.addNewTab(_this.getTabPaneByIndex(0));
-      return _this.addNewTab(_this.getTabPaneByIndex(0));
+      _this.addNewTab(_this.getTabViewByIndex(0));
+      _this.addNewTab(_this.getTabViewByIndex(0));
+      _this.addNewTab(_this.getTabViewByIndex(0));
+      _this.addNewTab(_this.getTabViewByIndex(0));
+      _this.addNewTab(_this.getTabViewByIndex(0));
+      _this.addNewTab(_this.getTabViewByIndex(0));
+      return _this.addNewTab(_this.getTabViewByIndex(0));
     });
-    this.on("CodeMirrorMoveFileToRight", function() {
-      _this.splitView.resizePanel("50%", 1, function() {
-        var pane;
-        pane = _this.tabViews[0].getActivePane();
-        debugger;
-        return _this.tabViews[0].removePane(pane);
-      });
-      return _this.isSecondPaneVisible = true;
+    this.on("CodeMirrorMoveFile", function(direction) {
+      _this.moveFile(direction);
+      return _this.setSplitResizerVisibility(true);
     });
-    this.on("CodeMirrorMoveFileToLeft", function() {
-      return log("to left");
+    this.on("CodeMirrorSetActiveTabView", function(tabView) {
+      return _this.activeTabView = tabView;
     });
   }
 
-  CodeMirrorView.prototype.getTabPaneByIndex = function(index) {
+  CodeMirrorView.prototype.moveFileHelper = function(direction) {
+    var activePane, activeTabView, activeTabViewIndex, content, editor, editorContainer, file, targetIndex, targetTabView;
+    activeTabView = this.activeTabView;
+    activeTabViewIndex = this.tabViews.indexOf(activeTabView);
+    if ((direction === "right" && activeTabViewIndex === 1) || (direction === "left" && activeTabViewIndex === 0)) {
+      return;
+    }
+    activePane = activeTabView.getActivePane();
+    editorContainer = activePane.getOptions().editorContainer;
+    editor = editorContainer.editor;
+    content = editor.getValue();
+    file = editorContainer.getData();
+    activeTabView.removePane(activePane);
+    targetIndex = activeTabViewIndex === 0 ? 1 : 0;
+    targetTabView = this.tabViews[targetIndex];
+    return this.addNewTab(targetTabView, file, content);
+  };
+
+  CodeMirrorView.prototype.moveFile = function(direction) {
+    var _this = this;
+    if (this.isSecondTabViewVisible) {
+      return this.moveFileHelper(direction);
+    }
+    return this.splitView.resizePanel("50%", 1, function() {
+      _this.moveFileHelper(direction);
+      return _this.isSecondTabViewVisible = true;
+    });
+  };
+
+  CodeMirrorView.prototype.getTabViewByIndex = function(index) {
     return this.tabViews[index];
   };
 
@@ -7575,11 +7615,13 @@ CodeMirrorView = (function(_super) {
     return holderView;
   };
 
-  CodeMirrorView.prototype.addNewTab = function(tabView, file) {
+  CodeMirrorView.prototype.addNewTab = function(tabView, file, content) {
     var editorContainer, pane;
     file = file || FSHelper.createFileFromPath('localfile:/Untitled.txt');
     editorContainer = new CodeMirrorEditorContainer({
-      delegate: this
+      delegate: this,
+      content: content,
+      tabView: tabView
     }, file);
     pane = new KDTabPaneView({
       name: file.name || 'Untitled.txt',
