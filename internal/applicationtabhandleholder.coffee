@@ -6,8 +6,7 @@ class ApplicationTabHandleHolder extends KDView
 
     super options, data
 
-    @on 'PlusHandleClicked', ->
-      @getDelegate().addNewTab()
+    @on 'PlusHandleClicked', => @getDelegate().addNewTab()
 
   viewAppended: ->
     @addPlusHandle()
