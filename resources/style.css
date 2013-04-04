@@ -2,8 +2,11 @@
 .codemirror .CodeMirror { 
   height:      100%;
 }
+.codemirror .kdsplitview-resizer {
+  background: none !important;
+}
 .codemirror .codemirror-settings-button {
-  background:  url(http://koding.com/images/_kd.sprites.png) -59px -301px;
+  background:  url(https://koding.com/images/_kd.sprites.png) -59px -301px;
   width:       17px;
   height:      18px;
   border-left: 1px solid #e2e2e2;
@@ -27,7 +30,22 @@
   background-position: bottom;
   background-repeat: repeat-x;
 }
+.codemirror-bottom-bar {
+  bottom: 21px;
+}
 
+/* internal */
+.codemirror .visible-tab-handle {
+  padding: 0 5px !important;
+  border: none !important;
+}
+.codemirror .visible-tab-handle .icon {
+  margin: 1px 0 0 0;
+  width: 20px;
+  height: 20px;
+  display: block;
+  background: url(https://koding.com/images/_kd.sprites.png) -120px -460px;
+}
 
 /* show-hint.css */
 .CodeMirror-hints {
