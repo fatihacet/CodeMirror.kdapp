@@ -27,12 +27,6 @@ class CodeMirrorView extends JView
     @splitView.on "viewAppended", =>
       @setSplitResizerVisibility()
       @addNewTab @getTabViewByIndex 0
-      @addNewTab @getTabViewByIndex 0
-      @addNewTab @getTabViewByIndex 0
-      @addNewTab @getTabViewByIndex 0
-      @addNewTab @getTabViewByIndex 0
-      @addNewTab @getTabViewByIndex 0
-      @addNewTab @getTabViewByIndex 0
       
     @on "CodeMirrorMoveFile", (direction) => 
       @moveFile direction
@@ -41,8 +35,10 @@ class CodeMirrorView extends JView
     @on "CodeMirrorSetActiveTabView", (tabView) =>
       @activeTabView = tabView
       
+    [@activeTabView] = @tabViews
+      
   moveFileHelper: (direction) ->
-    activeTabView   = @activeTabView
+    activeTabView       = @activeTabView
     activeTabViewIndex  = @tabViews.indexOf activeTabView
     return if (direction is "right" and activeTabViewIndex is 1) or (direction is "left" and activeTabViewIndex is 0)
     activePane      = activeTabView.getActivePane()
@@ -77,17 +73,30 @@ class CodeMirrorView extends JView
     
     holderView.addSubView tabHandleContainer = new ApplicationTabHandleHolder
       delegate: @
-
+      
+    dropTarget = new KDView
+      cssClass  : "codemirror-drop-target"
+      bind      : "dragstart dragend dragover drop dragenter dragleave"
+      
+    dropTarget.hide()
+    
     holderView.addSubView tabView = new ApplicationTabView {
       delegate : @
-      tabHandleContainer   
+      tabHandleContainer
+      dropTarget
     }
-      
+    
+    tabView.addSubView dropTarget
+    
     @tabViews.push tabView
+    
+    dropTarget.on "drop", (e) =>
+      file = FSHelper.createFileFromPath e.originalEvent.dataTransfer.getData "Text"
+      @addNewTab tabView, file
     
     return holderView
   
-  addNewTab: (tabView, file, content) ->
+  addNewTab: (tabView = @activeTabView, file, content) ->
     file = file or FSHelper.createFileFromPath 'localfile:/Untitled.txt'
     
     editorContainer = new CodeMirrorEditorContainer {
@@ -102,6 +111,20 @@ class CodeMirrorView extends JView
 
     tabView.addPane pane
     pane.addSubView editorContainer
+    
+  viewAppended: ->
+    super 
+    
+    KD.getSingleton("windowController").registerListener
+      KDEventTypes : ["DragEnterOnWindow", "DragExitOnWindow"]
+      listener : @
+      callback : (pubInst, event) =>
+        @dropTargetsCallback event
+        
+  dropTargetsCallback: (event) ->
+    for tabView in @tabViews
+      tabView.getOptions().dropTarget.show()
+      tabView.getOptions().dropTarget.hide() if event.type is "drop"
     
   pistachio: -> """
     {{> @splitView}}

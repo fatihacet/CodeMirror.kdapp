@@ -19,7 +19,7 @@
   height: 100px;
   bottom: 20px;
   z-index: 999;
-  right: 0px;
+  right: 0;
   background: #FFF;
 }
 .CodeMirror-activeline-background {
@@ -32,6 +32,12 @@
 }
 .codemirror-bottom-bar {
   bottom: 21px;
+}
+.codemirror-drop-target {
+  position: absolute;
+  background: #000;
+  opacity: 0.6;
+  z-index: 500;
 }
 
 /* internal */
