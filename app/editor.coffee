@@ -25,10 +25,13 @@ class CodeMirrorEditor extends KDObject
       extraKeys                  : 
         "Ctrl-Space"             : "autocomplete"
         "Ctrl-Q"                 : => @fold
-        "Alt-O"                  : => @moveFileToLeft()
-        "Alt-P"                  : => @moveFileToRight()
         "Cmd-S"                  : => @save()
         "Shift-Cmd-S"            : => @saveAs()
+        "Alt-O"                  : => @moveFileToLeft()
+        "Alt-P"                  : => @moveFileToRight()
+        "Ctrl-T"                 : => @openEmptyFile()
+        "Ctrl-W"                 : => @closeFile()
+        "Shift-Ctrl-R"           : => @compileAndRunApp()
     
     # internal editor events
     @editor.on "cursorActivity", => 
@@ -61,8 +64,7 @@ class CodeMirrorEditor extends KDObject
       return log "cannot save" if err
       log "saved"
     
-  saveAs: ->
-    @showSaveAsDialog()
+  saveAs: -> @showSaveAsDialog()
       
   fetchFileContent: ->
     file = @getData()
@@ -72,6 +74,7 @@ class CodeMirrorEditor extends KDObject
   getValue: -> return @editor.getValue()
       
   fold: ->
+    # TODO: Need to change fold function for different file types
     CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder) @editor, @editor.getCursor().line
     
   moveFileToLeft:  -> @getAppView().emit "CodeMirrorMoveFile", "left"
@@ -82,6 +85,24 @@ class CodeMirrorEditor extends KDObject
     editorContainer = @getDelegate()
     codeMirrorView  = editorContainer.getDelegate()
     return codeMirrorView
+  
+  openEmptyFile: ->
+    view = @getAppView()
+    view.addNewTab view.activeTabView
+    
+  closeFile: ->
+    view            = @getAppView()
+    {activeTabView} = view
+    activeTabView.removePane activeTabView.getActivePane()
+    
+  compileAndRunApp: ->
+    manifest = KodingAppsController.getManifestFromPath @getData().path
+    return @notify "You can only compile a kdapp.", "error" unless manifest
+    
+    kodingAppsController.compileApp manifest.name, (err) =>
+      @notify "Trying to run old version..." if err 
+      
+      kodingAppsController.runApp manifest
     
   updateTheme: (themeName) ->
     styleId   = "codemirror-theme-#{themeName}"
@@ -105,7 +126,7 @@ class CodeMirrorEditor extends KDObject
       
       @editor.setOption "theme", themeName
   
-  notify: (title, cssClass = "", duration = 4000, type = "mini") ->
+  notify: (title, cssClass = "", duration = 3000, type = "mini") ->
     @notification = new KDNotificationView {
       type
       title
