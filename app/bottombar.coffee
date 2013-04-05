@@ -10,8 +10,7 @@ class CodeMirrorBottomBar extends JView
       cssClass : "codemirror-caret-pos caret-position section"
       partial  : "1:1"
       
-    @settingsButton = new KDCustomHTMLView
-      tagName  : "div"
+    @settingsButton = new KDView
       cssClass : "codemirror-settings-button"
       click    : =>
         {settingsView} = @getDelegate()
