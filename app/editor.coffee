@@ -27,11 +27,12 @@ class CodeMirrorEditor extends KDObject
         "Ctrl-Q"                 : => @fold
         "Cmd-S"                  : => @save()
         "Shift-Cmd-S"            : => @saveAs()
-        "Alt-O"                  : => @moveFileToLeft()
-        "Alt-P"                  : => @moveFileToRight()
-        "Ctrl-T"                 : => @openEmptyFile()
-        "Ctrl-W"                 : => @closeFile()
-        "Shift-Ctrl-R"           : => @compileAndRunApp()
+        "Alt-K"                  : => @moveFileToLeft()
+        "Alt-L"                  : => @moveFileToRight()
+        "Alt-T"                  : => @openEmptyFile()
+        "Alt-W"                  : => @closeFile()
+        "Shift-Alt-R"            : => @compileAndRunApp()
+        "Shift-Alt-P"            : => @previewFile()
     
     # internal editor events
     @editor.on "cursorActivity", => 
@@ -103,6 +104,13 @@ class CodeMirrorEditor extends KDObject
       @notify "Trying to run old version..." if err 
       
       kodingAppsController.runApp manifest
+  
+  previewFile: ->
+    publicUrlCheck = /.*\/(.*\.koding.com)\/website\/(.*)/
+    publicPath = @getData().path.replace publicUrlCheck, 'http://$1/$2'
+    return if publicPath is @getData().path
+    
+    appManager.openFileWithApplication publicPath, "Viewer"
     
   updateTheme: (themeName) ->
     styleId   = "codemirror-theme-#{themeName}"
