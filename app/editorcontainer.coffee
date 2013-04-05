@@ -8,7 +8,7 @@ class CodeMirrorEditorContainer extends JView
     
     @editor       = null # will be set at viewAppended
     
-    @topBar       = new CodeMirrorTopBar
+    # @topBar       = new CodeMirrorTopBar
       
     @container    = new KDView
       cssClass    : "codemirror-editor"
@@ -35,10 +35,9 @@ class CodeMirrorEditorContainer extends JView
     
   resize: ->
     # 90 = appViewPadding is 10, topBarHeight is 38, bottomBarHeight is 21, appTabsHeight is 21
-    @container.setHeight appView.getHeight() - 90
+    @container.setHeight appView.getHeight() - 52
     
   pistachio: -> """
-    {{> @topBar}}
     {{> @container}}
     {{> @bottomBar}}
     {{> @findAndReplaceView}} 
