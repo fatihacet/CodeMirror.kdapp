@@ -55,12 +55,14 @@ class CodeMirrorEditor extends KDObject
     
   save: ->
     file = @getData()
+    return @saveAs() if file.path.match "localfile"
+    
     file.save @editor.getValue(), (err, res) => 
       return log "cannot save" if err
       log "saved"
     
   saveAs: ->
-    log "save as called"
+    @showSaveAsDialog()
       
   fetchFileContent: ->
     file = @getData()
@@ -80,7 +82,7 @@ class CodeMirrorEditor extends KDObject
     editorContainer = @getDelegate()
     codeMirrorView  = editorContainer.getDelegate()
     return codeMirrorView
-  
+    
   updateTheme: (themeName) ->
     styleId   = "codemirror-theme-#{themeName}"
     return @editor.setOption "theme", themeName if document.getElementById styleId 
@@ -103,7 +105,7 @@ class CodeMirrorEditor extends KDObject
       
       @editor.setOption "theme", themeName
   
-  showNotification: (title, cssClass = "", duration = 4000, type = "mini") ->
+  notify: (title, cssClass = "", duration = 4000, type = "mini") ->
     @notification = new KDNotificationView {
       type
       title
