@@ -30,6 +30,7 @@ class CodeMirrorEditorContainer extends JView
       delegate  : @
       container : @container.getDomElement()[0]
       value     : @getOptions().content
+    , @getData()
     @resize()
     
   resize: ->

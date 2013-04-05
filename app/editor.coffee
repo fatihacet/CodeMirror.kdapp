@@ -16,7 +16,7 @@ class CodeMirrorEditor extends KDObject
       lineNumbers                : options.lineNumbers        or yes
       autofocus                  : options.autofocus          or yes
       theme                      : options.theme              or "ambiance"
-      value                      : options.value              or codeMirrorSettings.sampleCode
+      value                      : options.value              or ""
       styleActiveLine            : options.highlightLine      or yes
       highlightSelectionMatches  : options.highlightSelection or yes
       matchBrackets              : options.matchBrackets      or yes
@@ -27,6 +27,8 @@ class CodeMirrorEditor extends KDObject
         "Ctrl-Q"                 : => @fold
         "Alt-O"                  : => @moveFileToLeft()
         "Alt-P"                  : => @moveFileToRight()
+        "Cmd-S"                  : => @save()
+        "Shift-Cmd-S"            : => @saveAs()
     
     # internal editor events
     @editor.on "cursorActivity", => 
@@ -48,6 +50,22 @@ class CodeMirrorEditor extends KDObject
       log "mode name is changing to", modeName
       @editor.setOption "mode", modeName
       CodeMirror.autoLoadMode @editor, modeName
+      
+    @fetchFileContent() unless @getData().path.match "localfile"
+    
+  save: ->
+    file = @getData()
+    file.save @editor.getValue(), (err, res) => 
+      return log "cannot save" if err
+      log "saved"
+    
+  saveAs: ->
+    log "save as called"
+      
+  fetchFileContent: ->
+    file = @getData()
+    file.fetchContents (err, content) =>
+      @editor.setValue content
   
   getValue: -> return @editor.getValue()
       
@@ -84,4 +102,11 @@ class CodeMirrorEditor extends KDObject
       log "style tag created"
       
       @editor.setOption "theme", themeName
-      
+  
+  showNotification: (title, cssClass = "", duration = 4000, type = "mini") ->
+    @notification = new KDNotificationView {
+      type
+      title
+      duration
+      cssClass
+    }
