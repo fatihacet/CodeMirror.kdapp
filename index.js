@@ -1,4 +1,4 @@
-// Compiled by Koding Servers at Wed Apr 03 2013 17:51:16 GMT-0700 (PDT) in server time
+// Compiled by Koding Servers at Thu Apr 04 2013 19:07:21 GMT-0700 (PDT) in server time
 
 (function() {
 
@@ -52,7 +52,8 @@ ApplicationTabHandleHolder = (function(_super) {
   __extends(ApplicationTabHandleHolder, _super);
 
   function ApplicationTabHandleHolder(options, data) {
-    var _ref;
+    var _ref,
+      _this = this;
     if (options == null) {
       options = {};
     }
@@ -62,7 +63,7 @@ ApplicationTabHandleHolder = (function(_super) {
     options.bind = "mouseenter mouseleave";
     ApplicationTabHandleHolder.__super__.constructor.call(this, options, data);
     this.on('PlusHandleClicked', function() {
-      return this.getDelegate().addNewTab();
+      return _this.getDelegate().addNewTab();
     });
   }
 
@@ -7326,7 +7327,7 @@ CodeMirrorEditorContainer = (function(_super) {
       delegate: this,
       container: this.container.getDomElement()[0],
       value: this.getOptions().content
-    });
+    }, this.getData());
     return this.resize();
   };
 
@@ -7400,7 +7401,7 @@ CodeMirrorEditor = (function(_super) {
       lineNumbers: options.lineNumbers || true,
       autofocus: options.autofocus || true,
       theme: options.theme || "ambiance",
-      value: options.value || codeMirrorSettings.sampleCode,
+      value: options.value || "",
       styleActiveLine: options.highlightLine || true,
       highlightSelectionMatches: options.highlightSelection || true,
       matchBrackets: options.matchBrackets || true,
@@ -7416,6 +7417,12 @@ CodeMirrorEditor = (function(_super) {
         },
         "Alt-P": function() {
           return _this.moveFileToRight();
+        },
+        "Cmd-S": function() {
+          return _this.save();
+        },
+        "Shift-Cmd-S": function() {
+          return _this.saveAs();
         }
       }
     });
@@ -7437,7 +7444,38 @@ CodeMirrorEditor = (function(_super) {
       _this.editor.setOption("mode", modeName);
       return CodeMirror.autoLoadMode(_this.editor, modeName);
     });
+    if (!this.getData().path.match("localfile")) {
+      this.fetchFileContent();
+    }
   }
+
+  CodeMirrorEditor.prototype.save = function() {
+    var file,
+      _this = this;
+    file = this.getData();
+    if (file.path.match("localfile")) {
+      return this.saveAs();
+    }
+    return file.save(this.editor.getValue(), function(err, res) {
+      if (err) {
+        return log("cannot save");
+      }
+      return log("saved");
+    });
+  };
+
+  CodeMirrorEditor.prototype.saveAs = function() {
+    return this.showSaveAsDialog();
+  };
+
+  CodeMirrorEditor.prototype.fetchFileContent = function() {
+    var file,
+      _this = this;
+    file = this.getData();
+    return file.fetchContents(function(err, content) {
+      return _this.editor.setValue(content);
+    });
+  };
 
   CodeMirrorEditor.prototype.getValue = function() {
     return this.editor.getValue();
@@ -7484,6 +7522,24 @@ CodeMirrorEditor = (function(_super) {
       document.head.appendChild(style);
       log("style tag created");
       return _this.editor.setOption("theme", themeName);
+    });
+  };
+
+  CodeMirrorEditor.prototype.notify = function(title, cssClass, duration, type) {
+    if (cssClass == null) {
+      cssClass = "";
+    }
+    if (duration == null) {
+      duration = 4000;
+    }
+    if (type == null) {
+      type = "mini";
+    }
+    return this.notification = new KDNotificationView({
+      type: type,
+      title: title,
+      duration: duration,
+      cssClass: cssClass
     });
   };
 
@@ -7534,12 +7590,6 @@ CodeMirrorView = (function(_super) {
     });
     this.splitView.on("viewAppended", function() {
       _this.setSplitResizerVisibility();
-      _this.addNewTab(_this.getTabViewByIndex(0));
-      _this.addNewTab(_this.getTabViewByIndex(0));
-      _this.addNewTab(_this.getTabViewByIndex(0));
-      _this.addNewTab(_this.getTabViewByIndex(0));
-      _this.addNewTab(_this.getTabViewByIndex(0));
-      _this.addNewTab(_this.getTabViewByIndex(0));
       return _this.addNewTab(_this.getTabViewByIndex(0));
     });
     this.on("CodeMirrorMoveFile", function(direction) {
@@ -7549,6 +7599,7 @@ CodeMirrorView = (function(_super) {
     this.on("CodeMirrorSetActiveTabView", function(tabView) {
       return _this.activeTabView = tabView;
     });
+    this.activeTabView = this.tabViews[0];
   }
 
   CodeMirrorView.prototype.moveFileHelper = function(direction) {
@@ -7602,21 +7653,37 @@ CodeMirrorView = (function(_super) {
   };
 
   CodeMirrorView.prototype.createNewTabView = function() {
-    var holderView, tabHandleContainer, tabView;
+    var dropTarget, holderView, tabHandleContainer, tabView,
+      _this = this;
     holderView = new KDView;
     holderView.addSubView(tabHandleContainer = new ApplicationTabHandleHolder({
       delegate: this
     }));
+    dropTarget = new KDView({
+      cssClass: "codemirror-drop-target",
+      bind: "dragstart dragend dragover drop dragenter dragleave"
+    });
+    dropTarget.hide();
     holderView.addSubView(tabView = new ApplicationTabView({
       delegate: this,
-      tabHandleContainer: tabHandleContainer
+      tabHandleContainer: tabHandleContainer,
+      dropTarget: dropTarget
     }));
+    tabView.addSubView(dropTarget);
     this.tabViews.push(tabView);
+    dropTarget.on("drop", function(e) {
+      var file;
+      file = FSHelper.createFileFromPath(e.originalEvent.dataTransfer.getData("Text"));
+      return _this.addNewTab(tabView, file);
+    });
     return holderView;
   };
 
   CodeMirrorView.prototype.addNewTab = function(tabView, file, content) {
     var editorContainer, pane;
+    if (tabView == null) {
+      tabView = this.activeTabView;
+    }
     file = file || FSHelper.createFileFromPath('localfile:/Untitled.txt');
     editorContainer = new CodeMirrorEditorContainer({
       delegate: this,
@@ -7631,6 +7698,34 @@ CodeMirrorView = (function(_super) {
     return pane.addSubView(editorContainer);
   };
 
+  CodeMirrorView.prototype.viewAppended = function() {
+    var _this = this;
+    CodeMirrorView.__super__.viewAppended.apply(this, arguments);
+    return KD.getSingleton("windowController").registerListener({
+      KDEventTypes: ["DragEnterOnWindow", "DragExitOnWindow"],
+      listener: this,
+      callback: function(pubInst, event) {
+        return _this.dropTargetsCallback(event);
+      }
+    });
+  };
+
+  CodeMirrorView.prototype.dropTargetsCallback = function(event) {
+    var tabView, _i, _len, _ref, _results;
+    _ref = this.tabViews;
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      tabView = _ref[_i];
+      tabView.getOptions().dropTarget.show();
+      if (event.type === "drop") {
+        _results.push(tabView.getOptions().dropTarget.hide());
+      } else {
+        _results.push(void 0);
+      }
+    }
+    return _results;
+  };
+
   CodeMirrorView.prototype.pistachio = function() {
     return "{{> this.splitView}}";
   };
@@ -7638,6 +7733,99 @@ CodeMirrorView = (function(_super) {
   return CodeMirrorView;
 
 })(JView);
+
+
+/* BLOCK ENDS */
+
+
+
+/* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/internal/saveasdialog.coffee */
+
+
+CodeMirrorEditor.prototype.showSaveAsDialog = function() {
+  var file, finder, finderWrapper, form, inputFileName, labelFileName, labelFinder, wrapper,
+    _this = this;
+  file = this.getData();
+  this.saveAsDialog = new KDDialogView({
+    cssClass: "save-as-dialog",
+    duration: 200,
+    topOffset: 0,
+    overlay: true,
+    height: "auto",
+    buttons: {
+      Save: {
+        style: "modal-clean-gray",
+        callback: function() {
+          return _this.doSaveAs(file);
+        }
+      },
+      Cancel: {
+        style: "modal-cancel",
+        callback: function() {
+          return _this.saveAsDialog.hide();
+        }
+      }
+    }
+  });
+  this.saveAsDialog.addSubView(wrapper = new KDView({
+    cssClass: "kddialog-wrapper"
+  }));
+  wrapper.addSubView(form = new KDFormView);
+  form.addSubView(labelFileName = new KDLabelView({
+    title: "Filename:"
+  }));
+  form.addSubView(this.inputFileName = inputFileName = new KDInputView({
+    type: "text",
+    label: labelFileName,
+    defaultValue: file.name,
+    placeholder: "your awesome file name",
+    keyup: function(e) {
+      if (e.which === 13) {
+        return _this.doSaveAs(file);
+      }
+    }
+  }));
+  form.addSubView(labelFinder = new KDLabelView({
+    title: "Select a folder:"
+  }));
+  this.saveAsDialog.show();
+  inputFileName.setFocus();
+  this.finderController = new NFinderController({
+    treeItemClass: NFinderItem,
+    nodeIdPath: "path",
+    nodeParentIdPath: "parentPath",
+    dragdrop: true,
+    foldersOnly: true,
+    contextMenu: false
+  });
+  finder = this.finderController.getView();
+  form.addSubView(finderWrapper = new KDView({
+    cssClass: "save-as-dialog file-container"
+  }, null));
+  finderWrapper.addSubView(finder);
+  finderWrapper.setHeight(200);
+  return this.getDelegate().addSubView(this.saveAsDialog);
+};
+
+CodeMirrorEditor.prototype.doSaveAs = function(file) {
+  var name, node, parent, treeController,
+    _this = this;
+  node = this.finderController.treeController.selectedNodes[0];
+  name = this.inputFileName.getValue();
+  if (name === '' || /^([a-zA-Z]:\\)?[^\x00-\x1F"<>\|:\*\?/]+$/.test(name) === false) {
+    return this.notify("Please type valid file name!", "error");
+  }
+  if (!node) {
+    return this.notify("Please select a folder to save!", "error");
+  }
+  parent = node.getData();
+  file.saveAs(this.editor.getValue(), name, parent.path, function() {});
+  this.saveAsDialog.hide();
+  treeController = KD.getSingleton('finderController').treeController;
+  return treeController.navigateTo(parent.path, function() {
+    return treeController.selectNode(treeController.nodes["" + parent.path + "/" + name]);
+  });
+};
 
 
 /* BLOCK ENDS */

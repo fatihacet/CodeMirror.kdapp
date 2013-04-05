@@ -46,6 +46,7 @@
           "./app/topbar.coffee",
           "./app/editor.coffee",
           "./app/view.coffee",
+          "./internal/saveasdialog.coffee",
           "./index.coffee"
         ]
       }
