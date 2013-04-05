@@ -1,7 +1,8 @@
 KD.enableLogs()
-{nickname}       = KD.whoami().profile
-windowController = KD.getSingleton "windowController"
-kiteController   = KD.getSingleton "kiteController"
+{nickname}           = KD.whoami().profile
+windowController     = KD.getSingleton "windowController"
+kiteController       = KD.getSingleton "kiteController"
+kodingAppsController = KD.getSingleton "kodingAppsController"
 
 
 class CodeMirrorView extends JView
@@ -21,6 +22,7 @@ class CodeMirrorView extends JView
       cssClass    : "codemirror-split-view"
       type        : "vertical"
       resizable   : yes
+      animated    : no
       sizes       : [ "100%", null ]
       views       : [ @createNewTabView(), @createNewTabView() ]
     
