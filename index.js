@@ -1,4 +1,4 @@
-// Compiled by Koding Servers at Thu Apr 04 2013 19:07:21 GMT-0700 (PDT) in server time
+// Compiled by Koding Servers at Fri Apr 05 2013 15:46:42 GMT-0700 (PDT) in server time
 
 (function() {
 
@@ -11,12 +11,12 @@ var ApplicationTabView,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 ApplicationTabView = (function(_super) {
-
   __extends(ApplicationTabView, _super);
 
   function ApplicationTabView(options, data) {
     var appView,
       _this = this;
+
     if (options == null) {
       options = {};
     }
@@ -48,12 +48,12 @@ var ApplicationTabHandleHolder,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 ApplicationTabHandleHolder = (function(_super) {
-
   __extends(ApplicationTabHandleHolder, _super);
 
   function ApplicationTabHandleHolder(options, data) {
     var _ref,
       _this = this;
+
     if (options == null) {
       options = {};
     }
@@ -73,6 +73,7 @@ ApplicationTabHandleHolder = (function(_super) {
 
   ApplicationTabHandleHolder.prototype.addPlusHandle = function() {
     var _this = this;
+
     return this.addSubView(this.plusHandle = new KDCustomHTMLView({
       cssClass: "kdtabhandle visible-tab-handle plus",
       partial: "<span class='icon'></span>",
@@ -85,6 +86,7 @@ ApplicationTabHandleHolder = (function(_super) {
 
   ApplicationTabHandleHolder.prototype.repositionPlusHandle = function(handles) {
     var handlesLength;
+
     handlesLength = handles.length;
     if (handlesLength) {
       return this.plusHandle.$().insertAfter(handles[handlesLength - 1].$());
@@ -7200,11 +7202,11 @@ var CodeMirrorSettingsView,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 CodeMirrorSettingsView = (function(_super) {
-
   __extends(CodeMirrorSettingsView, _super);
 
   function CodeMirrorSettingsView(options, data) {
     var _this = this;
+
     if (options == null) {
       options = {};
     }
@@ -7244,11 +7246,11 @@ var CodeMirrorBottomBar,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 CodeMirrorBottomBar = (function(_super) {
-
   __extends(CodeMirrorBottomBar, _super);
 
   function CodeMirrorBottomBar(options, data) {
     var _this = this;
+
     if (options == null) {
       options = {};
     }
@@ -7258,11 +7260,11 @@ CodeMirrorBottomBar = (function(_super) {
       cssClass: "codemirror-caret-pos caret-position section",
       partial: "1:1"
     });
-    this.settingsButton = new KDCustomHTMLView({
-      tagName: "div",
+    this.settingsButton = new KDView({
       cssClass: "codemirror-settings-button",
       click: function() {
         var settingsView;
+
         settingsView = _this.getDelegate().settingsView;
         settingsView.show();
         windowController.addLayer(settingsView);
@@ -7297,7 +7299,6 @@ var CodeMirrorEditorContainer,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 CodeMirrorEditorContainer = (function(_super) {
-
   __extends(CodeMirrorEditorContainer, _super);
 
   function CodeMirrorEditorContainer(options, data) {
@@ -7307,7 +7308,6 @@ CodeMirrorEditorContainer = (function(_super) {
     options.cssClass = "codemirror-editor-container";
     CodeMirrorEditorContainer.__super__.constructor.call(this, options, data);
     this.editor = null;
-    this.topBar = new CodeMirrorTopBar;
     this.container = new KDView({
       cssClass: "codemirror-editor"
     });
@@ -7332,11 +7332,11 @@ CodeMirrorEditorContainer = (function(_super) {
   };
 
   CodeMirrorEditorContainer.prototype.resize = function() {
-    return this.container.setHeight(appView.getHeight() - 90);
+    return this.container.setHeight(appView.getHeight() - 52);
   };
 
   CodeMirrorEditorContainer.prototype.pistachio = function() {
-    return "{{> this.topBar}}\n{{> this.container}}\n{{> this.bottomBar}}\n{{> this.findAndReplaceView}} \n{{> this.settingsView}}";
+    return "{{> this.container}}\n{{> this.bottomBar}}\n{{> this.findAndReplaceView}} \n{{> this.settingsView}}";
   };
 
   return CodeMirrorEditorContainer;
@@ -7355,7 +7355,6 @@ var CodeMirrorTopBar,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 CodeMirrorTopBar = (function(_super) {
-
   __extends(CodeMirrorTopBar, _super);
 
   function CodeMirrorTopBar(options, data) {
@@ -7382,11 +7381,11 @@ var CodeMirrorEditor,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 CodeMirrorEditor = (function(_super) {
-
   __extends(CodeMirrorEditor, _super);
 
   function CodeMirrorEditor(options, data) {
     var _this = this;
+
     if (options == null) {
       options = {};
     }
@@ -7412,22 +7411,35 @@ CodeMirrorEditor = (function(_super) {
         "Ctrl-Q": function() {
           return _this.fold;
         },
-        "Alt-O": function() {
-          return _this.moveFileToLeft();
-        },
-        "Alt-P": function() {
-          return _this.moveFileToRight();
-        },
         "Cmd-S": function() {
           return _this.save();
         },
         "Shift-Cmd-S": function() {
           return _this.saveAs();
+        },
+        "Alt-K": function() {
+          return _this.moveFileToLeft();
+        },
+        "Alt-L": function() {
+          return _this.moveFileToRight();
+        },
+        "Alt-T": function() {
+          return _this.openEmptyFile();
+        },
+        "Alt-W": function() {
+          return _this.closeFile();
+        },
+        "Shift-Alt-R": function() {
+          return _this.compileAndRunApp();
+        },
+        "Shift-Alt-P": function() {
+          return _this.previewFile();
         }
       }
     });
     this.editor.on("cursorActivity", function() {
       var applicationView, editorContainer;
+
       editorContainer = _this.getDelegate();
       applicationView = editorContainer.getDelegate();
       editorContainer.bottomBar.updateCaretPos(_this.editor.getDoc().getCursor());
@@ -7452,6 +7464,7 @@ CodeMirrorEditor = (function(_super) {
   CodeMirrorEditor.prototype.save = function() {
     var file,
       _this = this;
+
     file = this.getData();
     if (file.path.match("localfile")) {
       return this.saveAs();
@@ -7471,6 +7484,7 @@ CodeMirrorEditor = (function(_super) {
   CodeMirrorEditor.prototype.fetchFileContent = function() {
     var file,
       _this = this;
+
     file = this.getData();
     return file.fetchContents(function(err, content) {
       return _this.editor.setValue(content);
@@ -7495,14 +7509,58 @@ CodeMirrorEditor = (function(_super) {
 
   CodeMirrorEditor.prototype.getAppView = function() {
     var codeMirrorView, editorContainer;
+
     editorContainer = this.getDelegate();
     codeMirrorView = editorContainer.getDelegate();
     return codeMirrorView;
   };
 
+  CodeMirrorEditor.prototype.openEmptyFile = function() {
+    var view;
+
+    view = this.getAppView();
+    return view.addNewTab(view.activeTabView);
+  };
+
+  CodeMirrorEditor.prototype.closeFile = function() {
+    var activeTabView, view;
+
+    view = this.getAppView();
+    activeTabView = view.activeTabView;
+    return activeTabView.removePane(activeTabView.getActivePane());
+  };
+
+  CodeMirrorEditor.prototype.compileAndRunApp = function() {
+    var manifest,
+      _this = this;
+
+    manifest = KodingAppsController.getManifestFromPath(this.getData().path);
+    if (!manifest) {
+      return this.notify("You can only compile a kdapp.", "error");
+    }
+    return kodingAppsController.compileApp(manifest.name, function(err) {
+      if (err) {
+        _this.notify("Trying to run old version...");
+      }
+      return kodingAppsController.runApp(manifest);
+    });
+  };
+
+  CodeMirrorEditor.prototype.previewFile = function() {
+    var publicPath, publicUrlCheck;
+
+    publicUrlCheck = /.*\/(.*\.koding.com)\/website\/(.*)/;
+    publicPath = this.getData().path.replace(publicUrlCheck, 'http://$1/$2');
+    if (publicPath === this.getData().path) {
+      return;
+    }
+    return appManager.openFileWithApplication(publicPath, "Viewer");
+  };
+
   CodeMirrorEditor.prototype.updateTheme = function(themeName) {
     var command, styleId,
       _this = this;
+
     styleId = "codemirror-theme-" + themeName;
     if (document.getElementById(styleId)) {
       return this.editor.setOption("theme", themeName);
@@ -7510,6 +7568,7 @@ CodeMirrorEditor = (function(_super) {
     command = "curl https://" + nickname + ".koding.com/.applications/codemirror/lib/codemirror/theme/" + themeName + ".css";
     return kiteController.run(command, function(err, res) {
       var style;
+
       log("kite request started");
       style = document.createElement("style");
       style.type = "text/css";
@@ -7530,7 +7589,7 @@ CodeMirrorEditor = (function(_super) {
       cssClass = "";
     }
     if (duration == null) {
-      duration = 4000;
+      duration = 3000;
     }
     if (type == null) {
       type = "mini";
@@ -7554,7 +7613,7 @@ CodeMirrorEditor = (function(_super) {
 
 /* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/app/view.coffee */
 
-var CodeMirrorView, kiteController, nickname, windowController,
+var CodeMirrorView, kiteController, kodingAppsController, nickname, windowController,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -7566,12 +7625,14 @@ windowController = KD.getSingleton("windowController");
 
 kiteController = KD.getSingleton("kiteController");
 
-CodeMirrorView = (function(_super) {
+kodingAppsController = KD.getSingleton("kodingAppsController");
 
+CodeMirrorView = (function(_super) {
   __extends(CodeMirrorView, _super);
 
   function CodeMirrorView(options, data) {
     var _this = this;
+
     if (options == null) {
       options = {};
     }
@@ -7585,6 +7646,7 @@ CodeMirrorView = (function(_super) {
       cssClass: "codemirror-split-view",
       type: "vertical",
       resizable: true,
+      animated: false,
       sizes: ["100%", null],
       views: [this.createNewTabView(), this.createNewTabView()]
     });
@@ -7604,6 +7666,7 @@ CodeMirrorView = (function(_super) {
 
   CodeMirrorView.prototype.moveFileHelper = function(direction) {
     var activePane, activeTabView, activeTabViewIndex, content, editor, editorContainer, file, targetIndex, targetTabView;
+
     activeTabView = this.activeTabView;
     activeTabViewIndex = this.tabViews.indexOf(activeTabView);
     if ((direction === "right" && activeTabViewIndex === 1) || (direction === "left" && activeTabViewIndex === 0)) {
@@ -7622,6 +7685,7 @@ CodeMirrorView = (function(_super) {
 
   CodeMirrorView.prototype.moveFile = function(direction) {
     var _this = this;
+
     if (this.isSecondTabViewVisible) {
       return this.moveFileHelper(direction);
     }
@@ -7637,6 +7701,7 @@ CodeMirrorView = (function(_super) {
 
   CodeMirrorView.prototype.setSplitResizerVisibility = function(shouldShow) {
     var methodName, subView, subViews, _i, _len, _results;
+
     if (shouldShow == null) {
       shouldShow = false;
     }
@@ -7655,6 +7720,7 @@ CodeMirrorView = (function(_super) {
   CodeMirrorView.prototype.createNewTabView = function() {
     var dropTarget, holderView, tabHandleContainer, tabView,
       _this = this;
+
     holderView = new KDView;
     holderView.addSubView(tabHandleContainer = new ApplicationTabHandleHolder({
       delegate: this
@@ -7673,6 +7739,7 @@ CodeMirrorView = (function(_super) {
     this.tabViews.push(tabView);
     dropTarget.on("drop", function(e) {
       var file;
+
       file = FSHelper.createFileFromPath(e.originalEvent.dataTransfer.getData("Text"));
       return _this.addNewTab(tabView, file);
     });
@@ -7681,6 +7748,7 @@ CodeMirrorView = (function(_super) {
 
   CodeMirrorView.prototype.addNewTab = function(tabView, file, content) {
     var editorContainer, pane;
+
     if (tabView == null) {
       tabView = this.activeTabView;
     }
@@ -7700,6 +7768,7 @@ CodeMirrorView = (function(_super) {
 
   CodeMirrorView.prototype.viewAppended = function() {
     var _this = this;
+
     CodeMirrorView.__super__.viewAppended.apply(this, arguments);
     return KD.getSingleton("windowController").registerListener({
       KDEventTypes: ["DragEnterOnWindow", "DragExitOnWindow"],
@@ -7712,6 +7781,7 @@ CodeMirrorView = (function(_super) {
 
   CodeMirrorView.prototype.dropTargetsCallback = function(event) {
     var tabView, _i, _len, _ref, _results;
+
     _ref = this.tabViews;
     _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -7741,10 +7811,10 @@ CodeMirrorView = (function(_super) {
 
 /* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/internal/saveasdialog.coffee */
 
-
 CodeMirrorEditor.prototype.showSaveAsDialog = function() {
   var file, finder, finderWrapper, form, inputFileName, labelFileName, labelFinder, wrapper,
     _this = this;
+
   file = this.getData();
   this.saveAsDialog = new KDDialogView({
     cssClass: "save-as-dialog",
@@ -7810,6 +7880,7 @@ CodeMirrorEditor.prototype.showSaveAsDialog = function() {
 CodeMirrorEditor.prototype.doSaveAs = function(file) {
   var name, node, parent, treeController,
     _this = this;
+
   node = this.finderController.treeController.selectedNodes[0];
   name = this.inputFileName.getValue();
   if (name === '' || /^([a-zA-Z]:\\)?[^\x00-\x1F"<>\|:\*\?/]+$/.test(name) === false) {
@@ -7833,7 +7904,6 @@ CodeMirrorEditor.prototype.doSaveAs = function(file) {
 
 
 /* BLOCK STARTS /Source: /Users/fatihacet/Applications/CodeMirror.kdapp/index.coffee */
-
 
 appView.addSubView(new CodeMirrorView);
 
