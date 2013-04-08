@@ -4,7 +4,8 @@ class CodeMirrorEditor extends KDObject
     
     super options, data
     
-    options  = @getOptions()
+    options           = @getOptions()
+    @lastSavedContent = null
     
     CodeMirror.modeURL = "https://#{nickname}.koding.com/.applications/codemirror/lib/codemirror/mode/%N/%N.js"
     
@@ -57,11 +58,15 @@ class CodeMirrorEditor extends KDObject
     @fetchFileContent() unless @getData().path.match "localfile"
     
   save: ->
+    content = @editor.getValue()
+    return @notify "Nothing changed" if content is @lastSavedContent
+    
     file = @getData()
     return @saveAs() if file.path.match "localfile"
     
-    file.save @editor.getValue(), (err, res) => 
+    file.save content, (err, res) => 
       return log "cannot save" if err
+      @lastSavedContent = content
       log "saved"
     
   saveAs: -> @showSaveAsDialog()
