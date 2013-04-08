@@ -36,8 +36,7 @@ class CodeMirrorEditor extends KDObject
     
     # internal editor events
     @editor.on "cursorActivity", => 
-      editorContainer = @getDelegate()
-      applicationView = editorContainer.getDelegate()
+      applicationView = @getAppView()
       
       editorContainer.bottomBar.updateCaretPos @editor.getDoc().getCursor()
       
@@ -84,8 +83,7 @@ class CodeMirrorEditor extends KDObject
     
   getAppView: ->
     editorContainer = @getDelegate()
-    codeMirrorView  = editorContainer.getDelegate()
-    return codeMirrorView
+    return codeMirrorView  = editorContainer.getDelegate()
   
   openEmptyFile: ->
     view = @getAppView()
