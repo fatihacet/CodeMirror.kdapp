@@ -34,23 +34,24 @@ class CodeMirrorView extends JView
       @moveFile direction
       @setSplitResizerVisibility yes
       
-    @on "CodeMirrorSetActiveTabView", (tabView) =>
-      @activeTabView = tabView
+    @on "CodeMirrorSetActiveTabView", (tabView) => @activeTabView = tabView
       
     [@activeTabView] = @tabViews
       
   moveFileHelper: (direction) ->
     activeTabView       = @activeTabView
     activeTabViewIndex  = @tabViews.indexOf activeTabView
+    
     return if (direction is "right" and activeTabViewIndex is 1) or (direction is "left" and activeTabViewIndex is 0)
+    
     activePane      = activeTabView.getActivePane()
     editorContainer = activePane.getOptions().editorContainer
-    {editor}  = editorContainer
-    content   = editor.getValue()
-    file      = editorContainer.getData()
+    {editor}        = editorContainer
+    content         = editor.getValue()
+    file            = editorContainer.getData()
     
     activeTabView.removePane activePane
-    targetIndex = if activeTabViewIndex is 0 then 1 else 0 
+    targetIndex   = if activeTabViewIndex is 0 then 1 else 0
     targetTabView = @tabViews[targetIndex]
     @addNewTab targetTabView, file, content
     
