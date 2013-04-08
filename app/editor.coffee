@@ -59,15 +59,15 @@ class CodeMirrorEditor extends KDObject
     
   save: ->
     content = @editor.getValue()
-    return @notify "Nothing changed" if content is @lastSavedContent
+    return @notify "Nothing to save!" if content is @lastSavedContent
     
     file = @getData()
     return @saveAs() if file.path.match "localfile"
     
     file.save content, (err, res) => 
-      return log "cannot save" if err
+      return @notify "Couldn't save! Try again.", "success", 4000 if err
       @lastSavedContent = content
-      log "saved"
+      @notify "Successfully saved!", "success", 4000
     
   saveAs: -> @showSaveAsDialog()
       
@@ -138,6 +138,8 @@ class CodeMirrorEditor extends KDObject
       @editor.setOption "theme", themeName
   
   notify: (title, cssClass = "", duration = 3000, type = "mini") ->
+    @notification.destroy() if @notification
+    
     @notification = new KDNotificationView {
       type
       title
