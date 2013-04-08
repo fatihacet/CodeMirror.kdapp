@@ -41,7 +41,7 @@ class CodeMirrorEditor extends KDObject
       applicationView = editorContainer.getDelegate()
       
       editorContainer.emit "CodeMirrorUpdateCaretPosition", @editor.getDoc().getCursor()
-      applicationView.emit "CodeMirrorSetActiveTabView", applicationView.getOptions().tabView
+      applicationView.emit "CodeMirrorSetActiveTabView", editorContainer.getOptions().tabView
       
     @editor.on "gutterClick", (a, b) => 
       CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder) a, b
@@ -126,7 +126,7 @@ class CodeMirrorEditor extends KDObject
       style.type = "text/css"
       style.id   = styleId
       
-      if style.styleSheet
+      if style.styleSheet 
         style.styleSheet.cssText = res
       else 
         style.appendChild document.createTextNode res
