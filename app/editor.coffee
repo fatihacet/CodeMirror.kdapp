@@ -36,11 +36,11 @@ class CodeMirrorEditor extends KDObject
     
     # internal editor events
     @editor.on "cursorActivity", => 
-      applicationView = @getAppView()
+      editorContainer = @getDelegate()
+      applicationView = editorContainer.getDelegate()
       
-      editorContainer.bottomBar.updateCaretPos @editor.getDoc().getCursor()
-      
-      applicationView.emit "CodeMirrorSetActiveTabView", editorContainer.getOptions().tabView
+      editorContainer.emit "CodeMirrorUpdateCaretPosition", @editor.getDoc().getCursor()
+      applicationView.emit "CodeMirrorSetActiveTabView", applicationView.getOptions().tabView
       
     @editor.on "gutterClick", (a, b) => 
       CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder) a, b

@@ -22,7 +22,10 @@ class CodeMirrorEditorContainer extends JView
     @settingsView.hide()
     
     @findAndReplaceView = new KDView
-  
+    
+    @on "CodeMirrorUpdateCaretPosition", (newPos) =>
+      @bottomBar.updateCaretPos newPos
+      
   viewAppended: ->
     super
     
