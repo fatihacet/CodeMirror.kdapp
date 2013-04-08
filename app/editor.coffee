@@ -61,11 +61,13 @@ class CodeMirrorEditor extends KDObject
     content = @editor.getValue()
     return @notify "Nothing to save!" if content is @lastSavedContent
     
-    file = @getData()
-    return @saveAs() if file.path.match "localfile"
+    file    = @getData()
+    if file.path.match "localfile"
+      return @notify "Nothing to save!" if content is ""
+      return @saveAs() 
     
     file.save content, (err, res) => 
-      return @notify "Couldn't save! Try again.", "success", 4000 if err
+      return @notify "Couldn't save! Please try again.", "error", 4000 if err
       @lastSavedContent = content
       @notify "Successfully saved!", "success", 4000
     
