@@ -100,6 +100,8 @@ class CodeMirrorView extends JView
     return holderView
   
   addNewTab: (tabView = @activeTabView, file, content) ->
+    return if @checkFileExist file
+    
     file = file or FSHelper.createFileFromPath 'localfile:/Untitled.txt'
     
     editorContainer = new CodeMirrorEditorContainer {
@@ -111,9 +113,16 @@ class CodeMirrorView extends JView
     pane = new KDTabPaneView
       name             : file.name or 'Untitled.txt'
       editorContainer  : editorContainer
+    , file
 
     tabView.addPane pane
     pane.addSubView editorContainer
+    
+  checkFileExist: (file) ->
+    for tabView in @tabViews
+      for pane in tabView.panes
+        if pane.getData().path is file?.path
+          return tabView.showPaneByIndex tabView.panes.indexOf pane 
     
   viewAppended: ->
     super 
