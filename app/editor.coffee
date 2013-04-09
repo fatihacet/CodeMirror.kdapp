@@ -57,6 +57,9 @@ class CodeMirrorEditor extends KDObject
       
     @fetchFileContent() unless @getData().path.match "localfile"
     
+    @on "CodeMirrorDidSaveAs", (parent, name) ->
+      @updateSaveAs parent, name
+    
   save: ->
     content = @editor.getValue()
     return @notify "Nothing to save!" if content is @lastSavedContent
@@ -116,6 +119,14 @@ class CodeMirrorEditor extends KDObject
     return if publicPath is @getData().path
     
     appManager.openFileWithApplication publicPath, "Viewer"
+    
+  updateSaveAs: (parent, name) ->
+    file            = @getData()
+    file.name       = name
+    file.parentPath = parent.path
+    file.path       = "#{parent.path}/#{name}"
+    appView         = @getAppView()
+    appView.emit "CodeMirrorShouldUpdateActiveTabTitle", name
     
   updateTheme: (themeName) ->
     styleId   = "codemirror-theme-#{themeName}"

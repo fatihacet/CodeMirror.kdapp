@@ -35,6 +35,9 @@ class CodeMirrorView extends JView
       @setSplitResizerVisibility yes
       
     @on "CodeMirrorSetActiveTabView", (tabView) => @activeTabView = tabView
+    
+    @on "CodeMirrorShouldUpdateActiveTabTitle", (title) =>
+      @activeTabView.setPaneTitle @activeTabView.getActivePane(), title
       
     [@activeTabView] = @tabViews
       
@@ -100,7 +103,7 @@ class CodeMirrorView extends JView
     return holderView
   
   addNewTab: (tabView = @activeTabView, file, content) ->
-    return if @checkFileExist file
+    return if @checkFileExistence file
     
     file = file or FSHelper.createFileFromPath 'localfile:/Untitled.txt'
     
@@ -118,7 +121,7 @@ class CodeMirrorView extends JView
     tabView.addPane pane
     pane.addSubView editorContainer
     
-  checkFileExist: (file) ->
+  checkFileExistence: (file) ->
     for tabView in @tabViews
       for pane in tabView.panes
         if pane.getData().path is file?.path
