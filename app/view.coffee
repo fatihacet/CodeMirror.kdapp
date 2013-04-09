@@ -41,6 +41,12 @@ class CodeMirrorView extends JView
     @on "CodeMirrorShouldUpdateActiveTabTitle", (title) =>
       @activeTabView.setPaneTitle @activeTabView.getActivePane(), title
       
+    @on "CodeMirrorContentChanged", =>
+      @activeTabView.getActivePane().tabHandle.setClass "changed"
+      
+    @on "CodeMirrorHasSameContent", =>
+      @activeTabView.getActivePane().tabHandle.unsetClass "changed"
+      
     [@activeTabView] = @tabViews
       
   moveFileHelper: (direction) ->

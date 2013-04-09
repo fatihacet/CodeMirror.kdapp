@@ -71,6 +71,11 @@
   background: url(https://koding.com/images/_kd.sprites.png) -120px -460px;
 }
 
+/*
+fold available data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHklEQVQIW2P4//8/AzoGEQ7oGCaLLAhWiSwB146BAQCSTPYocqT0AAAAAElFTkSuQmCC
+fold done      data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAAFCAYAAACAcVaiAAAAHElEQVQIW2P4//+/AxAzgDADlOOAznHAKgPWAwARji8UIDTfQQAAAABJRU5ErkJggg==
+*/
+
 /* show-hint.css */
 .CodeMirror-hints {
   position: absolute;

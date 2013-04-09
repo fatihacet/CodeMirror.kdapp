@@ -5,7 +5,7 @@ class CodeMirrorEditor extends KDObject
     super options, data
     
     options           = @getOptions()
-    @lastSavedContent = null
+    @lastSavedContent = ""
     
     CodeMirror.modeURL = "https://#{nickname}.koding.com/.applications/codemirror/lib/codemirror/mode/%N/%N.js"
     
@@ -43,9 +43,15 @@ class CodeMirrorEditor extends KDObject
       editorContainer.emit "CodeMirrorUpdateCaretPosition", @editor.getDoc().getCursor()
       applicationView.emit "CodeMirrorSetActiveTabView", editorContainer.getOptions().tabView
       
-    @editor.on "gutterClick", (instance, lineNumber) => 
+    @editor.on "gutterClick", (cmInstance, lineNumber) => 
       foldFunc = CodeMirror.newFoldFunction CodeMirror.braceRangeFinder
-      foldFunc instance, lineNumber
+      foldFunc cmInstance, lineNumber
+      
+    @editor.on "change", (cmInstance, changeObj) =>
+      if @getValue() isnt @lastSavedContent
+        @getAppView().emit "CodeMirrorContentChanged"
+      else 
+        @getAppView().emit "CodeMirrorHasSameContent"
     
     # codemirror.kdapp events
     @on "CodeMirrorThemeChanged", (themeName) =>
@@ -74,6 +80,7 @@ class CodeMirrorEditor extends KDObject
       return @notify "Couldn't save! Please try again.", "error", 4000 if err
       @lastSavedContent = content
       @notify "Successfully saved!", "success", 4000
+      @getAppView().emit "CodeMirrorHasSameContent"
     
   saveAs: -> @showSaveAsDialog()
       
@@ -81,6 +88,8 @@ class CodeMirrorEditor extends KDObject
     file = @getData()
     file.fetchContents (err, content) =>
       @editor.setValue content
+      @lastSavedContent = content
+      @getAppView().emit "CodeMirrorHasSameContent"
   
   getValue: -> return @editor.getValue()
       
@@ -128,6 +137,7 @@ class CodeMirrorEditor extends KDObject
     file.path       = "#{parent.path}/#{name}"
     appView         = @getAppView()
     appView.emit "CodeMirrorShouldUpdateActiveTabTitle", name
+    appView.emit "CodeMirrorHasSameContent"
     
   updateTheme: (themeName) ->
     styleId   = "codemirror-theme-#{themeName}"
