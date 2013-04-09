@@ -39,6 +39,24 @@
   opacity: 0.6;
   z-index: 500;
 }
+.codemirror-splash-view {
+  position: absolute;
+}
+.codemirror-splash {
+  height: 150px;
+  width: 300px;
+  left: 50%;
+  top: 50%;
+  position: relative;
+  margin: -75px 0 0 -150px;
+}
+.codemirror-set-as-default {
+  width: 150px;
+  height: 20px;
+}
+.codemirror .kdtabhandle.changed {
+  color: #FF9200 !important;
+}
 
 /* internal */
 .codemirror .visible-tab-handle {
