@@ -29,7 +29,7 @@ class CodeMirrorEditorContainer extends JView
   viewAppended: ->
     super
     
-    @editor = window.editor = new CodeMirrorEditor
+    @editor = new CodeMirrorEditor
       delegate  : @
       container : @container.getDomElement()[0]
       value     : @getOptions().content
