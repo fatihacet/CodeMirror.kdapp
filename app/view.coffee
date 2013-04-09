@@ -58,7 +58,7 @@ class CodeMirrorView extends JView
     activeTabView.removePane activePane
     targetIndex   = if activeTabViewIndex is 0 then 1 else 0
     targetTabView = @tabViews[targetIndex]
-    @addNewTab targetTabView, file, content
+    @addNewTab targetTabView, file, content, yes
     
     # hide empty view if activeTabView.getSubViews().length is 0
   
@@ -96,6 +96,10 @@ class CodeMirrorView extends JView
     
     tabView.addSubView dropTarget
     
+    @splashView = new CodeMirrorSplashView
+    
+    tabView.addSubView @splashView
+    
     @tabViews.push tabView
     
     dropTarget.on "drop", (e) =>
@@ -107,8 +111,8 @@ class CodeMirrorView extends JView
     
     return holderView
     
-  addNewTab: (tabView = @activeTabView, file, content) ->
-    return if @checkFileExistence file
+  addNewTab: (tabView = @activeTabView, file, content, fileIsMovingToNewGroup = no) ->
+    return if (@isFileAlreadyOpen file) and not fileIsMovingToNewGroup
     
     file = file or FSHelper.createFileFromPath 'localfile:/Untitled.txt'
     
@@ -126,7 +130,7 @@ class CodeMirrorView extends JView
     tabView.addPane pane
     pane.addSubView editorContainer
     
-  checkFileExistence: (file) ->
+  isFileAlreadyOpen: (file) ->
     for tabView in @tabViews
       for pane in tabView.panes
         if pane.getData().path is file?.path
