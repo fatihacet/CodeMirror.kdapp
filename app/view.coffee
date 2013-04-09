@@ -3,6 +3,8 @@ KD.enableLogs()
 windowController     = KD.getSingleton "windowController"
 kiteController       = KD.getSingleton "kiteController"
 kodingAppsController = KD.getSingleton "kodingAppsController"
+finderController     = KD.getSingleton "finderController"
+{treeController}     = finderController
 
 
 class CodeMirrorView extends JView
@@ -97,11 +99,14 @@ class CodeMirrorView extends JView
     @tabViews.push tabView
     
     dropTarget.on "drop", (e) =>
-      file = FSHelper.createFileFromPath e.originalEvent.dataTransfer.getData "Text"
+      path = e.originalEvent.dataTransfer.getData "Text"
+      return if @isFolder path
+      
+      file = FSHelper.createFileFromPath path
       @addNewTab tabView, file
     
     return holderView
-  
+    
   addNewTab: (tabView = @activeTabView, file, content) ->
     return if @checkFileExistence file
     
@@ -126,6 +131,9 @@ class CodeMirrorView extends JView
       for pane in tabView.panes
         if pane.getData().path is file?.path
           return tabView.showPaneByIndex tabView.panes.indexOf pane 
+          
+  isFolder: (path) ->
+    return treeController.nodes[path].getData() instanceof FSFolder
     
   viewAppended: ->
     super 
