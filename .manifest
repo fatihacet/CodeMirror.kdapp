@@ -39,6 +39,7 @@
           "./lib/codemirror/addon/fold/xml-fold.js",
           "./lib/codemirror/addon/fold/indent-fold.js",
           
+          "./app/splashview.coffee",
           "./app/settings.coffee",
           "./app/settingsview.coffee",
           "./app/bottombar.coffee",
