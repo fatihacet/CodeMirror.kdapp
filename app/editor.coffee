@@ -43,8 +43,9 @@ class CodeMirrorEditor extends KDObject
       editorContainer.emit "CodeMirrorUpdateCaretPosition", @editor.getDoc().getCursor()
       applicationView.emit "CodeMirrorSetActiveTabView", editorContainer.getOptions().tabView
       
-    @editor.on "gutterClick", (a, b) => 
-      CodeMirror.newFoldFunction(CodeMirror.braceRangeFinder) a, b
+    @editor.on "gutterClick", (instance, lineNumber) => 
+      foldFunc = CodeMirror.newFoldFunction CodeMirror.braceRangeFinder
+      foldFunc instance, lineNumber
     
     # codemirror.kdapp events
     @on "CodeMirrorThemeChanged", (themeName) =>
