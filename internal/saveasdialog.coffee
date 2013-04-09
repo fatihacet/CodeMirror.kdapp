@@ -66,8 +66,11 @@ CodeMirrorEditor::doSaveAs = (file) ->
   file.saveAs @editor.getValue(), name, parent.path, =>
     
   @saveAsDialog.hide()
-  {treeController} = KD.getSingleton 'finderController'
-  treeController.navigateTo parent.path, =>
-    treeController.selectNode treeController.nodes["#{parent.path}/#{name}"]
-  # @ace.emit "AceDidSaveAs", name, parent.path
+  
+  @utils.wait 500, =>
+    {treeController} = KD.getSingleton 'finderController'
+    treeController.navigateTo parent.path, =>
+      treeController.selectNode treeController.nodes["#{parent.path}/#{name}"]
+  
+  @emit "CodeMirrorDidSaveAs", parent, name
   
