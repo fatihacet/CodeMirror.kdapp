@@ -23,6 +23,8 @@ class CodeMirrorWorkspace extends Workspace
     
     super options, data
     
+    window.workspace = @  if location.hostname is "localhost"
+    
   toggleView: (type) ->
     switch type
       when "vertical"

@@ -12,19 +12,22 @@ class CodeMirrorEditor extends KDView
     @fileExtension       = @file.getExtension()
     @container           = @getOptions().pane
     @lastSavedContent    = ""
+    @appStorage          = KD.getSingleton("appStorageController").storage "CodeMirror", "1.0"
     CodeMirror.modeURL   = "https://koding-cdn.s3.amazonaws.com/codemirror/latest/mode/%N/%N.js"
     appView.activeEditor = @
     
-    @createEditor()
-    @bindEditorEvents()
-    @container.on "viewAppended", =>
-      {@tabHandle} = @getOptions().pane
-      @createBottomBar()
-      @doInternalResize_()
+    @appStorage.fetchStorage (storage) =>
+      @createEditor()
+      @bindEditorEvents()
+      @container.on "viewAppended", =>
+        {@tabHandle} = @getOptions().pane
+        @createBottomBar()
+        @doInternalResize_()
 
   createEditor: ->
+    appStorage                  = @appStorage
     @editor                     = CodeMirror @container.getElement(),
-      tabSize                   : 2
+      tabSize                   : appStorage.getValue("tabSize") or 2
       theme                     : "ambiance"
       styleActiveLine           : yes
       autoCloseBrackets         : yes
@@ -34,7 +37,7 @@ class CodeMirrorEditor extends KDView
       matchBrackets             : yes
       showTrailingSpace         : no
       undoDepth                 : 200
-      gutters                   : ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+      gutters                   : [ "CodeMirror-linenumbers", "CodeMirror-foldgutter" ]
       highlightSelectionMatches : showToken   : /\w/
       foldGutter                : rangeFinder : new CodeMirror.fold.combine CodeMirror.fold.brace, CodeMirror.fold.comment, CodeMirror.fold.xml
       extraKeys                 : 
@@ -149,8 +152,8 @@ class CodeMirrorEditor extends KDView
   bindEditorEvents: ->
     @listenWindowResize()
     
-    @on "saveMenuItemClicked"   ,        => @save()
-    @on "saveAsMenuItemClicked" ,        => @saveAs()
+    @on "saveMenuItemClicked",           => @save()
+    @on "saveAsMenuItemClicked",         => @saveAs()
     @on "saveAllMenuItemClicked",        => @saveAll()
     @on "findMenuItemClicked",           => CodeMirror.commands.find @editor
     @on "findAndReplaceMenuItemClicked", => CodeMirror.commands.replace @editor
@@ -159,6 +162,9 @@ class CodeMirrorEditor extends KDView
     @on "previewMenuItemClicked",        => @preview()
     @on "quitMenuItemClicked",           => @quit()
     @on "exitMenuItemClicked",           => @exit()
+    
+    @on "CodeMirrorSettingsChanged", (key, value) =>
+      @updateSettings key, value
     
     @editor.on "cursorActivity", => 
       @updateCaretPos @editor.getDoc().getCursor()
@@ -171,6 +177,11 @@ class CodeMirrorEditor extends KDView
       handler = CodeMirrorSettings.autocompleteHandlers[@fileExtension] or "anyword"
       CodeMirror.showHint cm, CodeMirror.hint[handler]
       
+  updateSettings: (key, value) ->
+    switch key
+      when "theme"  then @setTheme  value
+      when "syntax" then @setSyntax value
+      
   setContent: (content) ->
     @editor.setValue content
       
@@ -178,11 +189,13 @@ class CodeMirrorEditor extends KDView
     methodName = if isDirty  then "setClass" else "unsetClass"
     @tabHandle[methodName] "modified"
     
-  setSyntax: ->
-    extension = @fileExtension
-    slug      = CodeMirrorSettings.syntaxHandlers[extension] or extension
-    @editor.setOption "mode", slug
-    CodeMirror.autoLoadMode @editor, slug
+  setSyntax: (syntaxName) ->
+    unless syntaxName
+      extension = @fileExtension
+      slug      = CodeMirrorSettings.syntaxHandlers[extension] or extension
+    mode        = syntaxName or slug
+    @editor.setOption "mode", mode
+    CodeMirror.autoLoadMode @editor, mode
     
   updateCaretPos: (posObj) ->
     @caretPos.updatePartial "Line #{posObj.line + 1}, Column #{posObj.ch + 1}"
@@ -210,6 +223,30 @@ class CodeMirrorEditor extends KDView
     
     @container.addSubView @bottomBar
     
+  getAdvancedSettingsMenuView: ->
+    new CodeMirrorAdvancedSettingsView delegate: this
+    
+  setTheme: (themeName) ->
+    styleId = "codemirror-theme-#{themeName}"
+    
+    if document.getElementById styleId 
+      return @editor.setOption "theme", themeName
+    
+    command = "curl -kLs https://koding-cdn.s3.amazonaws.com/codemirror/latest/theme/#{themeName}.css"
+    
+    @doKiteRequest command, (err, res) => 
+      style      = document.createElement "style"
+      style.type = "text/css"
+      style.id   = styleId
+      
+      if style.styleSheet 
+        style.styleSheet.cssText = res
+      else 
+        style.appendChild document.createTextNode res
+      
+      document.head.appendChild style
+      @editor.setOption "theme", themeName
+      
   _windowDidResize: ->
     @doInternalResize_()
   
@@ -230,5 +267,4 @@ class CodeMirrorEditor extends KDView
       vmName    : vmName
     , (err, res) =>
       return @defaultErrorNotify()  if err
-      callback()
-      
+      callback err, res

@@ -38,7 +38,6 @@ class CodeMirrorEditorWrapper extends JView
     @tabView.addPane pane
     pane.on "KDObjectWillBeDestroyed", =>
       delete @openedFiles[file.path]
-      log @tabView.getActivePane().editor
       appView.activeEditor = @tabView.getActivePane().editor
   
   pistachio: ->

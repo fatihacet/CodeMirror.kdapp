@@ -59,6 +59,7 @@
           "./lib/codemirror/addon/hint/python-hint.js",
           
           "./app/settings.coffee",
+          "./app/advancedsettingsview.coffee",
           "./app/gotodialog.coffee",
           "./app/findandreplaceview.coffee",
           "./app/editor.coffee",
@@ -90,12 +91,13 @@
     { "title"   : "Find and Replace",           "eventName" : "findAndReplace"   },
     { "title"   : "Goto line",                  "eventName" : "goto"             },
     { "type"    : "separator"                                                    },
+    { "title"   : "Compile",                    "eventName" : "compile"          },
     { "title"   : "Compile and Run",            "eventName" : "compileAndRun"    },
-    { "type"    : "separator"                                                    },
     { "title"   : "Preview",                    "eventName" : "preview"          },
     { "type"    : "separator"                                                    },
     { "title"   : "Advanced Settings",          "id"        : "advancedSettings" },
     { "title"   : "customViewAdvancedSettings", "parentId"  : "advancedSettings" },
+    { "type"    : "separator"                                                    },
     { "title"   : "Close File",                 "eventName" : "quit"             },
     { "title"   : "Exit App",                   "eventName" : "exit"             }
   ],

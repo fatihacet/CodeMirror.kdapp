@@ -7,3 +7,6 @@ appView.on "FileNeedsToBeOpened", (file) ->
   editorWrapper.openFile file
   
 appView.emit "ready"
+
+appView.getAdvancedSettingsMenuView = ->
+  return appView.activeEditor.getAdvancedSettingsMenuView()
