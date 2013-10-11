@@ -1,7 +1,7 @@
 class CodeMirrorGotoDialog extends KDModalViewWithForms
 
   constructor: (options = {}, data) ->
-    
+
     options.cssClass        = "goto"
     options.width           = 180
     options.overlay         = yes
@@ -28,9 +28,9 @@ class CodeMirrorGotoDialog extends KDModalViewWithForms
                   title     : "Go"
                   style     : "modal-clean-gray fl"
                   type      : "submit"
-    
+
     super options, data
-    
+
     @on "KDModalViewDestroyed", =>
       @getDelegate().gotoDialog = null
       @getDelegate().editor.focus()

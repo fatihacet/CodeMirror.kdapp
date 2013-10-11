@@ -8,11 +8,12 @@ class CodeMirrorEditor extends KDView
     
     super options, data
     
-    @file              = @getData()
-    @fileExtension     = @file.getExtension()
-    @container         = @getOptions().pane
-    @lastSavedContent  = ""
-    CodeMirror.modeURL = "https://koding-cdn.s3.amazonaws.com/codemirror/latest/mode/%N/%N.js"
+    @file                = @getData()
+    @fileExtension       = @file.getExtension()
+    @container           = @getOptions().pane
+    @lastSavedContent    = ""
+    CodeMirror.modeURL   = "https://koding-cdn.s3.amazonaws.com/codemirror/latest/mode/%N/%N.js"
+    appView.activeEditor = @
     
     @createEditor()
     @bindEditorEvents()
@@ -22,28 +23,41 @@ class CodeMirrorEditor extends KDView
       @doInternalResize_()
 
   createEditor: ->
-    @editor             = CodeMirror @container.getElement(),
-      lineNumbers       : yes
-      autofocus         : yes
-      tabSize           : 2
-      theme             : "ambiance"
-      styleActiveLine   : yes
-      extraKeys         : 
-        "Ctrl-Space"    : "autocomplete"
-        "Cmd-S"         : => @save()
-        "Shift-Cmd-S"   : => @saveAs()
-        "Shift-Cmd-P"   : => @preview()
-        "Shift-Cmd-C"   : => @compileAndRun()
-        "Cmd-F"         : => @showFindReplaceView no
-        "Shift-Cmd-F"   : => @showFindReplaceView yes
-        "Ctrl-G"        : => @goto()
-        
+    @editor                     = CodeMirror @container.getElement(),
+      tabSize                   : 2
+      theme                     : "ambiance"
+      styleActiveLine           : yes
+      autoCloseBrackets         : yes
+      lineNumbers               : yes
+      autofocus                 : yes
+      scrollPastEnd             : yes
+      matchBrackets             : yes
+      showTrailingSpace         : no
+      undoDepth                 : 200
+      gutters                   : ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+      highlightSelectionMatches : showToken   : /\w/
+      foldGutter                : rangeFinder : new CodeMirror.fold.combine CodeMirror.fold.brace, CodeMirror.fold.comment, CodeMirror.fold.xml
+      extraKeys                 : 
+        "Ctrl-Space"            : "autocomplete"
+        "Cmd-S"                 : => @save()
+        "Shift-Cmd-S"           : => @saveAs()
+        "Cmd-Alt-S"             : => @saveAll()
+        "Shift-Cmd-P"           : => @preview()
+        "Shift-Cmd-C"           : => @compileAndRun()
+        # "Cmd-F"                 : => @showFindReplaceView no
+        # "Shift-Cmd-F"           : => @showFindReplaceView yes
+        "Ctrl-G"                : => @goto()
+
     unless @file.path.match "localfile"
       @fetchFileContent()
       @setSyntax()
       
-    window.editor = @
-      
+    @editor.save      = => @save()
+    @editor.quit      = => @quit()
+    @editor.writeQuit = => @saveAndQuit()
+    
+    window.editor = @  if location.hostname is "localhost"
+    
   showFindReplaceView: (openReplaceView) ->
     selectedText = "" # TODO: get the selected text
     @findAndReplaceView.setViewHeight openReplaceView
@@ -56,7 +70,7 @@ class CodeMirrorEditor extends KDView
       @setContent contents
       @markAsDirty no
       
-  save: ->
+  save: (callback = noop) ->
     content = @editor.getValue()
     file    = @getData()
     
@@ -64,15 +78,16 @@ class CodeMirrorEditor extends KDView
     
     if file.path.match "localfile"
       return @notify "Nothing to save!"  if content is ""
-      return @saveAs() 
+      return @saveAs => callback()
     
     file.save content, (err, res) => 
       return @notify "Couldn't save! Please try again.", "error", 4000  if err
       @lastSavedContent = content
       @notify "Successfully saved!", "success", 4000
       @markAsDirty no
+      callback()
     
-  saveAs: ->
+  saveAs: (callback = noop) ->
     KD.utils.showSaveDialog @container, (input, finderController, dialog) =>
       [node] = finderController.treeController.selectedNodes
       name   = input.getValue()
@@ -86,8 +101,32 @@ class CodeMirrorEditor extends KDView
         return @notify "Couldn't save! Please try again.", "error", 4000  if err
         @notify "Successfully saved.", "success", 4000
         @markAsDirty no
+        callback()
 
     , { inputDefaultValue: @getData().name }
+    
+  saveAll: ->
+    @getDelegate().saveAll()
+  
+  saveAndQuit: ->
+    @save => @quit()
+  
+  # in fact, name of this method should be closeCurrentTab.
+  # quit is required by vim mode. 
+  quit: -> 
+    {tabView} = @getDelegate()
+    tabView.removePane tabView.getActivePane()
+    
+  exit: ->
+    appManager = KD.getSingleton "appManager"
+    appManager.quit appManager.getFrontApp()
+    
+  toggleVimMode: (value) ->
+    @editor.setOption "vimMode", value
+  
+  toggleEmacsMode: (value) ->
+    {emacsy} = CodeMirror.keyMap
+    if value then @editor.addKeyMap emacsy else @editor.removeKeyMap emacsy
     
   preview: ->
     {vmName, path} = @getData()
@@ -110,11 +149,23 @@ class CodeMirrorEditor extends KDView
   bindEditorEvents: ->
     @listenWindowResize()
     
+    @on "saveMenuItemClicked"   ,        => @save()
+    @on "saveAsMenuItemClicked" ,        => @saveAs()
+    @on "saveAllMenuItemClicked",        => @saveAll()
+    @on "findMenuItemClicked",           => CodeMirror.commands.find @editor
+    @on "findAndReplaceMenuItemClicked", => CodeMirror.commands.replace @editor
+    @on "gotoMenuItemClicked",           => @goto()
+    @on "compileAndRunMenuItemClicked",  => @compileAndRun()
+    @on "previewMenuItemClicked",        => @preview()
+    @on "quitMenuItemClicked",           => @quit()
+    @on "exitMenuItemClicked",           => @exit()
+    
     @editor.on "cursorActivity", => 
       @updateCaretPos @editor.getDoc().getCursor()
     
     @editor.on "change", =>
       @markAsDirty @editor.getValue() isnt @lastSavedContent
+      appView.activeEditor = @
       
     CodeMirror.commands.autocomplete = (cm) ->
       handler = CodeMirrorSettings.autocompleteHandlers[@fileExtension] or "anyword"
@@ -148,7 +199,7 @@ class CodeMirrorEditor extends KDView
     @filePath  = new KDCustomHTMLView
       tagName  : "span"
       cssClass : "file-path section"
-      partial  : @getData().path
+      partial  : FSHelper.plainPath @getData().path.replace("localfile://", "").replace("/home/#{KD.nick()}", "~")
       
     @bottomBar.addSubView @caretPos
     @bottomBar.addSubView @filePath

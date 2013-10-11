@@ -25,7 +25,30 @@
           "./lib/codemirror/lib/codemirror.js",
           
           "./lib/codemirror/addon/selection/active-line.js",
+          
+          "./lib/codemirror/addon/dialog/dialog.js",
+          
+          "./lib/codemirror/keymap/vim.js",
+          
+          "./lib/codemirror/keymap/extra.js",
+          
           "./lib/codemirror/addon/mode/loadmode.js",
+          
+          "./lib/codemirror/addon/edit/closebrackets.js",
+          "./lib/codemirror/addon/edit/matchbrackets.js",
+          "./lib/codemirror/addon/edit/trailingspace.js",
+          
+          "./lib/codemirror/addon/fold/foldcode.js",
+          "./lib/codemirror/addon/fold/foldgutter.js",
+          "./lib/codemirror/addon/fold/brace-fold.js",
+          "./lib/codemirror/addon/fold/xml-fold.js",
+          "./lib/codemirror/addon/fold/comment-fold.js",
+          
+          "./lib/codemirror/addon/scroll/scrollpastend.js",
+          
+          "./lib/codemirror/addon/search/searchcursor.js",
+          "./lib/codemirror/addon/search/search.js",
+          "./lib/codemirror/addon/search/match-highlighter.js",
           
           "./lib/codemirror/addon/hint/show-hint.js",
           "./lib/codemirror/addon/hint/javascript-hint.js",
@@ -59,27 +82,22 @@
   },
   "screenshots" : [],
   "menu"        : [
-    { "title"   : "Save",                "eventName" : "save" },
-    { "title"   : "Save As",             "eventName" : "saveAs" },
-    { "type"    : "separator" },
-    { "title"   : "Find",                "eventName" : "find" },
-    { "title"   : "Find and Replace",    "eventName" : "findAndReplace" },
-    { "title"   : "Goto line",           "eventName" : "gotoLine" },
-    { "type"    : "separator" },
-    { "title"   : "Compile and Run",     "eventName" : "compileAndRun"},
-    { "type"    : "separator"                                      },
-    { "title"   : "Preview",             "eventName" : "preview" },
-    { "type"    : "separator" },
-    { "title"   : "Advanced Settings",   "id"        : "advancedSettings" },
-    { "title"   : "customViewAdvancedSettings", "parentId": "advancedSettings"},
-    { "type"    : "separator" },
-    { "title"   : "Recently Opened",     "id"        : "recents"},
-    { "title"   : "customViewRecents",   "parentId"  : "recents"},
-    { "title"   : "Reopen Latest Files", "eventName" : "reopen" },
-    { "type"    : "separator" },
-    { "title"   : "customViewFullscreen" },
-    { "type"    : "separator" },
-    { "title"   : "Exit",                "eventName" : "exit" }
+    { "title"   : "Save",                       "eventName" : "save"             },
+    { "title"   : "Save As",                    "eventName" : "saveAs"           },
+    { "title"   : "Save All Open Files",        "eventName" : "saveAll"          },
+    { "type"    : "separator"                                                    },
+    { "title"   : "Find",                       "eventName" : "find"             },
+    { "title"   : "Find and Replace",           "eventName" : "findAndReplace"   },
+    { "title"   : "Goto line",                  "eventName" : "goto"             },
+    { "type"    : "separator"                                                    },
+    { "title"   : "Compile and Run",            "eventName" : "compileAndRun"    },
+    { "type"    : "separator"                                                    },
+    { "title"   : "Preview",                    "eventName" : "preview"          },
+    { "type"    : "separator"                                                    },
+    { "title"   : "Advanced Settings",          "id"        : "advancedSettings" },
+    { "title"   : "customViewAdvancedSettings", "parentId"  : "advancedSettings" },
+    { "title"   : "Close File",                 "eventName" : "quit"             },
+    { "title"   : "Exit App",                   "eventName" : "exit"             }
   ],
   "fileTypes"   : [
     "php", "pl", "py", "jsp", "asp", "aspx", "htm", "html", "phtml","shtml",

@@ -10,14 +10,22 @@ class CodeMirrorWorkspace extends Workspace
         views           : [
           {
             type        : "custom"
-            paneClass   : CodeMirrorEditorWrapper
             name        : "topLeftPane"
+            paneClass   : CodeMirrorEditorWrapper
           }
           {
             type        : "custom"
+            name        : "topRightPane"
             paneClass   : KDView
           }
         ]
     ]
     
     super options, data
+    
+  toggleView: (type) ->
+    switch type
+      when "vertical"
+        activePanel = @getActivePanel()
+        activePanel.layoutContainer.getSplitByName("BaseSplit").resizePanel "50%", 0
+        activePanel.getPaneByName("topRightPane").addSubView new CodeMirrorEditorWrapper

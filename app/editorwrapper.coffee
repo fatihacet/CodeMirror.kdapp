@@ -16,8 +16,8 @@ class CodeMirrorEditorWrapper extends JView
       tabHandleContainer : @tabHandleContainer
       
     @tabView.on "viewAppended", => @addNewTab()
-    
-    window.ali = @
+    @tabView.on "PaneDidShow", (pane) ->
+      appView.activeEditor = pane.editor
     
   saveAll: ->
     for pane in @tabView.panes when not pane.getData().path.match "localfile"
@@ -33,9 +33,13 @@ class CodeMirrorEditorWrapper extends JView
   addNewTab: (fileNeedsToBeOpened) ->
     file        = fileNeedsToBeOpened or FSHelper.createFileFromPath "localfile://Untitled.txt"
     pane        = new KDTabPaneView    { name: file.name }, file
-    pane.editor = new CodeMirrorEditor { pane }, file
+    pane.editor = new CodeMirrorEditor { pane, delegate: this }, file
     @openedFiles[file.path] = file
     @tabView.addPane pane
+    pane.on "KDObjectWillBeDestroyed", =>
+      delete @openedFiles[file.path]
+      log @tabView.getActivePane().editor
+      appView.activeEditor = @tabView.getActivePane().editor
   
   pistachio: ->
     """
