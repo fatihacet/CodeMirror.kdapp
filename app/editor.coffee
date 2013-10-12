@@ -183,6 +183,8 @@ class CodeMirrorEditor extends KDView
       syntax         : "setSyntax"
       layout         : "updateLayout"
       keyboardHandler: "enableKeyboardHandler"
+      tabSize        : "setTabSize"
+      fontSize       : "setFontSize"
     
     methodName = methodMap[key]
     if methodName then @[methodName] value else warn "Unhandled CM option", key, value
@@ -246,6 +248,9 @@ class CodeMirrorEditor extends KDView
       when "default"
         @setVimMode   no
         @setEmacsMode no
+        
+  setFontSize: (size) ->
+    debugger
     
   setTheme: (themeName) ->
     styleId = "codemirror-theme-#{themeName}"
@@ -267,6 +272,9 @@ class CodeMirrorEditor extends KDView
       
       document.head.appendChild style
       @editor.setOption "theme", themeName
+      
+  setTabSize: (size) ->
+    @editor.setOption "tabSize", size
       
   _windowDidResize: ->
     @doInternalResize_()
