@@ -124,10 +124,10 @@ class CodeMirrorEditor extends KDView
     appManager = KD.getSingleton "appManager"
     appManager.quit appManager.getFrontApp()
     
-  toggleVimMode: (value) ->
+  setVimMode: (value) ->
     @editor.setOption "vimMode", value
   
-  toggleEmacsMode: (value) ->
+  setEmacsMode: (value) ->
     {emacsy} = CodeMirror.keyMap
     if value then @editor.addKeyMap emacsy else @editor.removeKeyMap emacsy
     
@@ -178,9 +178,14 @@ class CodeMirrorEditor extends KDView
       CodeMirror.showHint cm, CodeMirror.hint[handler]
       
   updateSettings: (key, value) ->
-    switch key
-      when "theme"  then @setTheme  value
-      when "syntax" then @setSyntax value
+    methodMap        = 
+      theme          : "setTheme"
+      syntax         : "setSyntax"
+      layout         : "updateLayout"
+      keyboardHandler: "enableKeyboardHandler"
+    
+    methodName = methodMap[key]
+    if methodName then @[methodName] value else warn "Unhandled CM option", key, value
       
   setContent: (content) ->
     @editor.setValue content
@@ -193,9 +198,17 @@ class CodeMirrorEditor extends KDView
     unless syntaxName
       extension = @fileExtension
       slug      = CodeMirrorSettings.syntaxHandlers[extension] or extension
+
     mode        = syntaxName or slug
     @editor.setOption "mode", mode
     CodeMirror.autoLoadMode @editor, mode
+    
+  updateLayout: (type) ->
+    # TODO: FIND A BETTER WAY TO DO THAT!!!
+    wrapper   = @getDelegate()
+    panel     = wrapper.getDelegate()
+    workspace = panel.getDelegate()
+    workspace.toggleView type
     
   updateCaretPos: (posObj) ->
     @caretPos.updatePartial "Line #{posObj.line + 1}, Column #{posObj.ch + 1}"
@@ -225,6 +238,14 @@ class CodeMirrorEditor extends KDView
     
   getAdvancedSettingsMenuView: ->
     new CodeMirrorAdvancedSettingsView delegate: this
+    
+  enableKeyboardHandler: (handler) ->
+    switch handler
+      when "vim"      then @setVimMode   yes
+      when "emacs"    then @setEmacsMode yes
+      when "default"
+        @setVimMode   no
+        @setEmacsMode no
     
   setTheme: (themeName) ->
     styleId = "codemirror-theme-#{themeName}"

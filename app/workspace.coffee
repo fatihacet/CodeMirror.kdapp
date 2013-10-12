@@ -31,3 +31,8 @@ class CodeMirrorWorkspace extends Workspace
         activePanel = @getActivePanel()
         activePanel.layoutContainer.getSplitByName("BaseSplit").resizePanel "50%", 0
         activePanel.getPaneByName("topRightPane").addSubView new CodeMirrorEditorWrapper
+      when "horizontal" or "grid"
+        new KDNotificationView
+          type     : "mini"
+          title    : "This feature will be implemented soon"
+          duration : 6000

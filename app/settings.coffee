@@ -16,6 +16,13 @@ CodeMirrorSettings     = cms =
     css                : "css"
     xml                : "xml"
     python             : "python"
+    
+  layouts              : [
+    { title            : "Default",           value: "default"                  }
+    { title            : "Vertical Split",    value: "vertical"                 }
+    { title            : "Horizontal Split",  value: "horizontal"               }
+    { title            : "Grid",              value: "grid"                     }
+  ]
   
   themes               : [
     { title            : "3024 Day",           value: "3024-day"                }
