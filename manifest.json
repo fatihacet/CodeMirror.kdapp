@@ -84,8 +84,8 @@
   "screenshots" : [],
   "menu"        : [
     { "title"   : "Save",                       "eventName" : "save"             },
+    { "title"   : "Save All",                   "eventName" : "saveAll"          },
     { "title"   : "Save As",                    "eventName" : "saveAs"           },
-    { "title"   : "Save All Open Files",        "eventName" : "saveAll"          },
     { "type"    : "separator"                                                    },
     { "title"   : "Find",                       "eventName" : "find"             },
     { "title"   : "Find and Replace",           "eventName" : "findAndReplace"   },

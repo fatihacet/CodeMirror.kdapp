@@ -185,6 +185,8 @@ class CodeMirrorEditor extends KDView
       keyboardHandler: "enableKeyboardHandler"
       tabSize        : "setTabSize"
       fontSize       : "setFontSize"
+      lineNumbers    : "setLineNumbers"
+      useWordWrap    : "setWordWrap"
     
     methodName = methodMap[key]
     if methodName then @[methodName] value else warn "Unhandled CM option", key, value
@@ -211,6 +213,12 @@ class CodeMirrorEditor extends KDView
     panel     = wrapper.getDelegate()
     workspace = panel.getDelegate()
     workspace.toggleView type
+    
+  setLineNumbers: (value) ->
+    @editor.setOption "lineNumbers", value
+    
+  setWordWrap: (value) ->
+    @editor.setOption "lineWrapping", value
     
   updateCaretPos: (posObj) ->
     @caretPos.updatePartial "Line #{posObj.line + 1}, Column #{posObj.ch + 1}"
