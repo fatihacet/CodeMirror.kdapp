@@ -32,6 +32,8 @@
           
           "./lib/codemirror/keymap/extra.js",
           
+          "./lib/codemirror/addon/emmet/emmet.js",
+          
           "./lib/codemirror/addon/mode/loadmode.js",
           
           "./lib/codemirror/addon/edit/closebrackets.js",
