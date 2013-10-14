@@ -23,22 +23,22 @@ class CodeMirrorEditor extends KDView
         {@tabHandle} = @getOptions().pane
         @createBottomBar()
         @doInternalResize_()
-
+        
   createEditor: ->
     appStorage                  = @appStorage
     @editor                     = CodeMirror @container.getElement(),
-      tabSize                   : appStorage.getValue("tabSize") or 2
-      theme                     : "ambiance"
-      styleActiveLine           : yes
-      autoCloseBrackets         : yes
-      lineNumbers               : yes
-      autofocus                 : yes
-      scrollPastEnd             : yes
-      matchBrackets             : yes
-      showTrailingSpace         : no
-      undoDepth                 : 200
+      tabSize                   : appStorage.getValue("tabSize")                   or 2
+      styleActiveLine           : appStorage.getValue("highlightLine")             or yes
+      lineNumbers               : appStorage.getValue("lineNumbers")               or yes
+      scrollPastEnd             : appStorage.getValue("scrollPastEnd")             or yes
+      fontSize                  : appStorage.getValue("fontSize")                  or 12
+      highlightSelectionMatches : appStorage.getValue("highlightSelectionMatches") or showToken: /\w/
+      autofocus                 : appStorage.getValue("autofocus")                 or no  # there is a known issue so it's no until I fix it.
+      matchBrackets             : appStorage.getValue("matchBrackets")             or yes # not optional yet
+      showTrailingSpace         : appStorage.getValue("showTrailingSpace")         or no  # not optional yet
+      undoDepth                 : appStorage.getValue("undoDepth")                 or 200 # not optional yet
+      autoCloseBrackets         : appStorage.getValue("autoCloseBrackets")         or yes # not optional yet
       gutters                   : [ "CodeMirror-linenumbers", "CodeMirror-foldgutter" ]
-      highlightSelectionMatches : showToken   : /\w/
       foldGutter                : rangeFinder : new CodeMirror.fold.combine CodeMirror.fold.brace, CodeMirror.fold.comment, CodeMirror.fold.xml
       extraKeys                 : 
         "Ctrl-Space"            : "autocomplete"
@@ -47,13 +47,16 @@ class CodeMirrorEditor extends KDView
         "Cmd-Alt-S"             : => @saveAll()
         "Shift-Cmd-P"           : => @preview()
         "Shift-Cmd-C"           : => @compileAndRun()
-        # "Cmd-F"                 : => @showFindReplaceView no
-        # "Shift-Cmd-F"           : => @showFindReplaceView yes
         "Ctrl-G"                : => @goto()
-
+        # TODO: Impelement CM find and replace with Search API.
+        # "Cmd-F"               : => @showFindReplaceView no
+        # "Shift-Cmd-F"         : => @showFindReplaceView yes
+        
     unless @file.path.match "localfile"
       @fetchFileContent()
       @setSyntax()
+    
+    @setTheme appStorage.getValue("theme") or "lesser-dark"
       
     @editor.save      = => @save()
     @editor.quit      = => @quit()
@@ -178,18 +181,25 @@ class CodeMirrorEditor extends KDView
       CodeMirror.showHint cm, CodeMirror.hint[handler]
       
   updateSettings: (key, value) ->
-    methodMap        = 
-      theme          : "setTheme"
-      syntax         : "setSyntax"
-      layout         : "updateLayout"
-      keyboardHandler: "enableKeyboardHandler"
-      tabSize        : "setTabSize"
-      fontSize       : "setFontSize"
-      lineNumbers    : "setLineNumbers"
-      useWordWrap    : "setWordWrap"
+    methodMap         = 
+      theme           : "setTheme"
+      syntax          : "setSyntax"
+      layout          : "updateLayout"
+      keyboardHandler : "enableKeyboardHandler"
+      tabSize         : "setTabSize"
+      fontSize        : "setFontSize"
+      lineNumbers     : "setLineNumbers"
+      useWordWrap     : "setWordWrap"
+      highlightLine   : "setHighlightLine"
+      scrollPastEnd   : "setScrollPastEnd"
+      highlightSelectionMatches : "setHighlightSelectionMatches"
     
     methodName = methodMap[key]
-    if methodName then @[methodName] value else warn "Unhandled CM option", key, value
+    if methodName 
+      @[methodName] value
+      @appStorage.setValue key, value
+    else
+      warn "Unhandled CM option", key, value
       
   setContent: (content) ->
     @editor.setValue content
@@ -211,7 +221,7 @@ class CodeMirrorEditor extends KDView
     # TODO: FIND A BETTER WAY TO DO THAT!!!
     wrapper   = @getDelegate()
     panel     = wrapper.getDelegate()
-    workspace = panel.getDelegate()
+    workspace = panel.getDelegate() # shame
     workspace.toggleView type
     
   setLineNumbers: (value) ->
@@ -219,6 +229,16 @@ class CodeMirrorEditor extends KDView
     
   setWordWrap: (value) ->
     @editor.setOption "lineWrapping", value
+  
+  setHighlightLine: (value) ->
+    @editor.setOption "styleActiveLine", value
+    
+  setHighlightSelectionMatches: (value) ->
+    value = if value then showToken : /\w/ else no
+    @editor.setOption "highlightSelectionMatches", value
+    
+  setScrollPastEnd: (value) ->
+    @editor.setOption "scrollPastEnd", value
     
   updateCaretPos: (posObj) ->
     @caretPos.updatePartial "Line #{posObj.line + 1}, Column #{posObj.ch + 1}"
@@ -258,7 +278,7 @@ class CodeMirrorEditor extends KDView
         @setEmacsMode no
         
   setFontSize: (size) ->
-    debugger
+    @editor.display.wrapper.style.fontSize = "#{size}px"
     
   setTheme: (themeName) ->
     styleId = "codemirror-theme-#{themeName}"
