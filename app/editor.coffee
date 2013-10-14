@@ -51,6 +51,8 @@ class CodeMirrorEditor extends KDView
         "Shift-Cmd-P"           : => @preview()
         "Shift-Cmd-C"           : => @compileAndRun()
         "Ctrl-G"                : => @goto()
+        "Shift-Ctrl-1"          : => @moveFileToLeft()
+        "Shift-Ctrl-2"          : => @moveFileToRight()
         # TODO: Impelement CM find and replace with Search API.
         # "Cmd-F"               : => @showFindReplaceView no
         # "Shift-Cmd-F"         : => @showFindReplaceView yes
@@ -158,7 +160,7 @@ class CodeMirrorEditor extends KDView
     kodingAppsController.compileApp manifest.name, (err) =>
       @ace.notify "Trying to run old version..."  if err
       appManager.open manifest.name
-  
+      
   bindEditorEvents: ->
     @listenWindowResize()
     
@@ -225,11 +227,7 @@ class CodeMirrorEditor extends KDView
     CodeMirror.autoLoadMode @editor, mode
     
   updateLayout: (type) ->
-    # TODO: FIND A BETTER WAY TO DO THAT!!!
-    wrapper   = @getDelegate()
-    panel     = wrapper.getDelegate()
-    workspace = panel.getDelegate() # shame
-    workspace.toggleView type
+    @getDelegate().emit "UpdateLayout", type
     
   setLineNumbers: (value) ->
     @editor.setOption "lineNumbers", value
@@ -310,7 +308,13 @@ class CodeMirrorEditor extends KDView
       
   setTabSize: (size) ->
     @editor.setOption "tabSize", size
-      
+    
+  moveFileToLeft: ->
+    @getDelegate().moveFileToLeft  @getOptions().tabView, @file, @editor.getValue(), @editor.getDoc().getCursor()
+    
+  moveFileToRight: ->
+    @getDelegate().moveFileToRight @getOptions().tabView, @file, @editor.getValue(), @editor.getDoc().getCursor()
+    
   _windowDidResize: ->
     @doInternalResize_()
   

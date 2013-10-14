@@ -63,7 +63,6 @@ class CodeMirrorAdvancedSettingsView extends JView
                       "lineWrapping", "syntax"  , "theme"  , "scrollPastEnd"  ]
     
     for inputName in inputNames
-      log inputName, editorWrapper.editor.getOption inputName
       @[inputName].setValue editorWrapper.editor.getOption inputName
       
     @keyboardHandler.setValue editorWrapper.appStorage.getValue "keyboardHandler"

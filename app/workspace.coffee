@@ -24,13 +24,16 @@ class CodeMirrorWorkspace extends Workspace
     super options, data
     
     window.workspace = @  if location.hostname is "localhost"
-    
+    @currentLayout   = "single"
+  
   toggleView: (type) ->
     switch type
       when "vertical"
         activePanel = @getActivePanel()
         activePanel.layoutContainer.getSplitByName("BaseSplit").resizePanel "50%", 0
         activePanel.getPaneByName("topRightPane").addSubView new CodeMirrorEditorWrapper
+        @currentLayout = "vertical"
+
       when "horizontal" or "grid"
         new KDNotificationView
           type     : "mini"

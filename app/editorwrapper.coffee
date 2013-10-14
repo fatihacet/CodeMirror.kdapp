@@ -7,6 +7,7 @@ class CodeMirrorEditorWrapper extends JView
     super options, data
     
     @openedFiles         = {}
+    @panel               = @getDelegate()
     
     @tabHandleContainer  = new ApplicationTabHandleHolder
       delegate           : this
@@ -15,9 +16,21 @@ class CodeMirrorEditorWrapper extends JView
       delegate           : this
       tabHandleContainer : @tabHandleContainer
       
-    @tabView.on "viewAppended", => @addNewTab()
+    @tabView.on "viewAppended", =>
+      @addNewTab()
+      @panel.tabViews = [] unless @panel.tabViews
+      @panel.tabViews.push @tabView
+      
     @tabView.on "PaneDidShow", (pane) ->
       appView.activeEditor = pane.editor
+      
+    @on "UpdateLayout", (type) =>
+      panel     = @getDelegate()
+      workspace = panel.getDelegate()
+      workspace.toggleView type
+      
+  moveFileToLeft: (tabView, file, content, pos) ->
+    log tabView, file, content, pos
     
   saveAll: ->
     for pane in @tabView.panes when not pane.getData().path.match "localfile"
@@ -33,7 +46,7 @@ class CodeMirrorEditorWrapper extends JView
   addNewTab: (fileNeedsToBeOpened) ->
     file        = fileNeedsToBeOpened or FSHelper.createFileFromPath "localfile://Untitled.txt"
     pane        = new KDTabPaneView    { name: file.name }, file
-    pane.editor = new CodeMirrorEditor { pane, delegate: this }, file
+    pane.editor = new CodeMirrorEditor { pane, @tabView, delegate: this }, file
     @openedFiles[file.path] = file
     @tabView.addPane pane
     pane.on "KDObjectWillBeDestroyed", =>

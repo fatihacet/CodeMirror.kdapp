@@ -6,7 +6,8 @@ appView.on "FileNeedsToBeOpened", (file) ->
   editorWrapper = codeMirrorWorkspace.getActivePanel().getPaneByName "topLeftPane"
   editorWrapper.openFile file
 
-eventNames = [ "save", "saveAs", "saveAll", "find", "findAndReplace", "goto", "compile", "compileAndRun", "preview", "quit", "exit" ]
+eventNames = [ "save", "saveAs" , "saveAll"      , "find"   , "findAndReplace",
+               "goto", "compile", "compileAndRun", "preview", "quit", "exit"  ]
 
 eventNames.forEach (eventName) =>
   appView.on "#{eventName}MenuItemClicked", =>
