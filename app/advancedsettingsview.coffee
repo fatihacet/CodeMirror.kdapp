@@ -11,10 +11,10 @@ class CodeMirrorAdvancedSettingsView extends JView
     @lineNumbers     = new KDOnOffSwitch
       callback       : (state) -> editor.emit "CodeMirrorSettingsChanged", "lineNumbers"       , state
       
-    @useWordWrap     = new KDOnOffSwitch
+    @lineWrapping    = new KDOnOffSwitch
       callback       : (state) -> editor.emit "CodeMirrorSettingsChanged", "useWordWrap"       , state
       
-    @highlightLine   = new KDOnOffSwitch
+    @styleActiveLine = new KDOnOffSwitch
       callback       : (state) -> editor.emit "CodeMirrorSettingsChanged", "highlightLine"     , state
       
     @highlightSelectionMatches = new KDOnOffSwitch
@@ -59,11 +59,16 @@ class CodeMirrorAdvancedSettingsView extends JView
       
   setDefaults: ->
     editorWrapper = @getDelegate()
-    inputNames    = [ "lineNumbers", "fontSize", "tabSize", "highlightLine", "highlightSelectionMatches"
-                      "useWordWrap", "syntax"  , "theme"  , "scrollPastEnd", "keyboardHandler" ]
+    inputNames    = [ "lineNumbers" , "fontSize", "tabSize", "styleActiveLine", 
+                      "lineWrapping", "syntax"  , "theme"  , "scrollPastEnd"  ]
     
     for inputName in inputNames
+      log inputName, editorWrapper.editor.getOption inputName
       @[inputName].setValue editorWrapper.editor.getOption inputName
+      
+    @keyboardHandler.setValue editorWrapper.appStorage.getValue "keyboardHandler"
+    if editorWrapper.editor.getOption "highlightSelectionMatches"
+      @highlightSelectionMatches.setValue yes
   
   viewAppended: ->
     super
@@ -73,8 +78,8 @@ class CodeMirrorAdvancedSettingsView extends JView
     """
     <div class="ace-settings-view codemirror">
         <p>Line numbers                 {{> @lineNumbers}}</p>
-        <p>Use word wrapping            {{> @useWordWrap}}</p>
-        <p>Highlight active line        {{> @highlightLine}}</p>
+        <p>Use word wrapping            {{> @lineWrapping}}</p>
+        <p>Highlight active line        {{> @styleActiveLine}}</p>
         <p>Highlight selection matches  {{> @highlightSelectionMatches}}</p>
         <p>Use scroll past end          {{> @scrollPastEnd}}</p>
         <p>Ruler                        {{> @ruler}}</p>

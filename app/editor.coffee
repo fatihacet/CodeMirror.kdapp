@@ -25,21 +25,24 @@ class CodeMirrorEditor extends KDView
         @doInternalResize_()
         
   createEditor: ->
+    file                        = @getData()
     appStorage                  = @appStorage
     @editor                     = CodeMirror @container.getElement(),
-      tabSize                   : appStorage.getValue("tabSize")                   or 2
       styleActiveLine           : appStorage.getValue("highlightLine")             or yes
       lineNumbers               : appStorage.getValue("lineNumbers")               or yes
       scrollPastEnd             : appStorage.getValue("scrollPastEnd")             or yes
+      lineWrapping              : appStorage.getValue("lineWrapping")              or no
+      tabSize                   : appStorage.getValue("tabSize")                   or 2
       fontSize                  : appStorage.getValue("fontSize")                  or 12
       highlightSelectionMatches : appStorage.getValue("highlightSelectionMatches") or showToken: /\w/
-      autofocus                 : appStorage.getValue("autofocus")                 or no  # there is a known issue so it's no until I fix it.
       matchBrackets             : appStorage.getValue("matchBrackets")             or yes # not optional yet
+      autoCloseBrackets         : appStorage.getValue("autoCloseBrackets")         or yes # not optional yet
       showTrailingSpace         : appStorage.getValue("showTrailingSpace")         or no  # not optional yet
       undoDepth                 : appStorage.getValue("undoDepth")                 or 200 # not optional yet
-      autoCloseBrackets         : appStorage.getValue("autoCloseBrackets")         or yes # not optional yet
+      autofocus                 : appStorage.getValue("autofocus")                 or no  # there is a known issue so it's no until I fix it.
       gutters                   : [ "CodeMirror-linenumbers", "CodeMirror-foldgutter" ]
       foldGutter                : rangeFinder : new CodeMirror.fold.combine CodeMirror.fold.brace, CodeMirror.fold.comment, CodeMirror.fold.xml
+      syntax                    : CodeMirrorSettings.syntaxHandlers[file.getExtension()]  # it's not CM related it's for app logic
       extraKeys                 : 
         "Ctrl-Space"            : "autocomplete"
         "Cmd-S"                 : => @save()
@@ -57,6 +60,10 @@ class CodeMirrorEditor extends KDView
       @setSyntax()
     
     @setTheme appStorage.getValue("theme") or "lesser-dark"
+    keyboardHandler = appStorage.getValue "keyboardHandler"
+    switch keyboardHandler 
+      when "vim"   then @setVimMode   yes
+      when "emacs" then @setEmacsMode yes
       
     @editor.save      = => @save()
     @editor.quit      = => @quit()
