@@ -1,4 +1,5 @@
 codeMirrorWorkspace = new CodeMirrorWorkspace
+appView.workspace   = codeMirrorWorkspace
 
 appView.addSubView codeMirrorWorkspace
 

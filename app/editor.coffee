@@ -349,7 +349,11 @@ class CodeMirrorEditor extends KDView
   
   doInternalResize_: ->
     @utils.defer =>
-      @editor.setSize "100%", @container.getHeight() - 44 # top and bottom bars
+      @editor.setSize "100%", @container.getHeight() - 44 # 44 is top and bottom bars
+      
+      {workspace} = appView # hack for split view window resize glitch
+      if workspace.currentLayout is "vertical"
+        KD.utils.defer => workspace.toggleView "vertical"
       
   notify: (title, cssClass = "", duration = 3000, type = "mini") ->
     @notification.destroy()  if @notification
