@@ -8,7 +8,7 @@ class CodeMirrorEditor extends KDView
     
     super options, data
     
-    @file                = @getData()
+    {@file}              = @getData()
     @fileExtension       = @file.getExtension()
     @container           = @getOptions().pane
     @lastSavedContent    = ""
@@ -25,7 +25,6 @@ class CodeMirrorEditor extends KDView
         @doInternalResize_()
         
   createEditor: ->
-    file                        = @getData()
     appStorage                  = @appStorage
     @editor                     = CodeMirror @container.getElement(),
       styleActiveLine           : appStorage.getValue("highlightLine")             or yes
@@ -42,7 +41,7 @@ class CodeMirrorEditor extends KDView
       autofocus                 : appStorage.getValue("autofocus")                 or no  # there is a known issue so it's no until I fix it.
       gutters                   : [ "CodeMirror-linenumbers", "CodeMirror-foldgutter" ]
       foldGutter                : rangeFinder : new CodeMirror.fold.combine CodeMirror.fold.brace, CodeMirror.fold.comment, CodeMirror.fold.xml
-      syntax                    : CodeMirrorSettings.syntaxHandlers[file.getExtension()]  # it's not CM related it's for app logic
+      syntax                    : CodeMirrorSettings.syntaxHandlers[@fileExtension]  # it's not CM related it's for app logic
       extraKeys                 : 
         "Ctrl-Space"            : "autocomplete"
         "Cmd-S"                 : => @save()
@@ -51,14 +50,26 @@ class CodeMirrorEditor extends KDView
         "Shift-Cmd-P"           : => @preview()
         "Shift-Cmd-C"           : => @compileAndRun()
         "Ctrl-G"                : => @goto()
-        "Shift-Ctrl-1"          : => @moveFileToLeft()
-        "Shift-Ctrl-2"          : => @moveFileToRight()
+        "Shift-Ctrl-1"          : => @moveFileHandler "left"
+        "Shift-Ctrl-2"          : => @moveFileHandler "right"
         # TODO: Impelement CM find and replace with Search API.
         # "Cmd-F"               : => @showFindReplaceView no
         # "Shift-Cmd-F"         : => @showFindReplaceView yes
         
     unless @file.path.match "localfile"
-      @fetchFileContent()
+      {content, position} = @getData()
+      if content 
+        @setContent content
+        @markAsDirty no
+        if position
+          @editor.getDoc().setCursor
+            line : position.line
+            ch   : position.ch
+          
+          @editor.focus()
+      else
+        @fetchFileContent()
+        
       @setSyntax()
     
     @setTheme appStorage.getValue("theme") or "lesser-dark"
@@ -87,7 +98,7 @@ class CodeMirrorEditor extends KDView
       
   save: (callback = noop) ->
     content = @editor.getValue()
-    file    = @getData()
+    file    = @file
     
     return @notify "Nothing to save!"  if content is @lastSavedContent
     
@@ -118,7 +129,7 @@ class CodeMirrorEditor extends KDView
         @markAsDirty no
         callback()
 
-    , { inputDefaultValue: @getData().name }
+    , { inputDefaultValue: @file.name }
     
   saveAll: ->
     @getDelegate().saveAll()
@@ -144,14 +155,14 @@ class CodeMirrorEditor extends KDView
     if value then @editor.addKeyMap emacsy else @editor.removeKeyMap emacsy
     
   preview: ->
-    {vmName, path} = @getData()
+    {vmName, path} = @file
     KD.getSingleton("appManager").open "Viewer", params: { path, vmName }
     
   goto: (line, char) ->
     @gotoDialog ?= new CodeMirrorGotoDialog delegate: this  
   
   compileAndRun: ->
-    manifest = KodingAppsController.getManifestFromPath @getData().path
+    manifest = KodingAppsController.getManifestFromPath @file.path
     return @notify "You can only compile a kdapp.", "error"  unless manifest
     
     appManager = KD.getSingleton "appManager"
@@ -214,6 +225,7 @@ class CodeMirrorEditor extends KDView
     @editor.setValue content
       
   markAsDirty: (isDirty) ->
+    return unless @tabHandle
     methodName = if isDirty  then "setClass" else "unsetClass"
     @tabHandle[methodName] "modified"
     
@@ -260,7 +272,7 @@ class CodeMirrorEditor extends KDView
     @filePath  = new KDCustomHTMLView
       tagName  : "span"
       cssClass : "file-path section"
-      partial  : FSHelper.plainPath @getData().path.replace("localfile://", "").replace("/home/#{KD.nick()}", "~")
+      partial  : FSHelper.plainPath @file.path.replace("localfile://", "").replace("/home/#{KD.nick()}", "~")
       
     @bottomBar.addSubView @caretPos
     @bottomBar.addSubView @filePath
@@ -309,12 +321,29 @@ class CodeMirrorEditor extends KDView
   setTabSize: (size) ->
     @editor.setOption "tabSize", size
     
-  moveFileToLeft: ->
-    @getDelegate().moveFileToLeft  @getOptions().tabView, @file, @editor.getValue(), @editor.getDoc().getCursor()
+  moveFileHandler: (direction) ->
+    wrapper   = @getDelegate()
+    {region}  = wrapper.getOptions()
+    return if (region is "topLeft" and direction is "left") or (region is "topRight" and direction is "right")
     
-  moveFileToRight: ->
-    @getDelegate().moveFileToRight @getOptions().tabView, @file, @editor.getValue(), @editor.getDoc().getCursor()
+    editor    = @editor
+    content   = editor.getValue()
+    position  = editor.getDoc().getCursor()
+    workspace = wrapper.panel.getDelegate()
+    argsObj   = { workspace, region, @file, content, position }
+      
+    if workspace.currentLayout isnt "vertical"
+      workspace.toggleView "vertical", => @moveFileHelper argsObj
+    else
+      @moveFileHelper argsObj
     
+  moveFileHelper: (argsObj) ->
+    {tabView}        = @getOptions()
+    tabView.removePane tabView.getActivePane()
+    targetWrapperKey = if argsObj.region is "topLeft" then "topRightPane" else "topLeftPane"
+    targetPane       = argsObj.workspace.getActivePanel().getPaneByName targetWrapperKey
+    targetPane.addNewTab argsObj.file, argsObj.content, argsObj.position
+  
   _windowDidResize: ->
     @doInternalResize_()
   

@@ -11,12 +11,14 @@ class CodeMirrorWorkspace extends Workspace
           {
             type        : "custom"
             name        : "topLeftPane"
+            region      : "topLeft"
             paneClass   : CodeMirrorEditorWrapper
           }
           {
             type        : "custom"
             name        : "topRightPane"
-            paneClass   : KDView
+            region      : "topRight"
+            paneClass   : CodeMirrorEditorWrapper
           }
         ]
     ]
@@ -26,13 +28,13 @@ class CodeMirrorWorkspace extends Workspace
     window.workspace = @  if location.hostname is "localhost"
     @currentLayout   = "single"
   
-  toggleView: (type) ->
+  toggleView: (type, callback = noop) ->
     switch type
       when "vertical"
-        activePanel = @getActivePanel()
-        activePanel.layoutContainer.getSplitByName("BaseSplit").resizePanel "50%", 0
-        activePanel.getPaneByName("topRightPane").addSubView new CodeMirrorEditorWrapper
+        splitView      = @getActivePanel().layoutContainer.getSplitByName "BaseSplit"
         @currentLayout = "vertical"
+        
+        splitView.resizePanel "50%", 0, => callback @, splitView
 
       when "horizontal" or "grid"
         new KDNotificationView
