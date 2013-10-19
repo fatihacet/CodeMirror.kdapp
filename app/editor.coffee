@@ -195,6 +195,9 @@ class CodeMirrorEditor extends KDView
     @editor.on "change", =>
       @markAsDirty @editor.getValue() isnt @lastSavedContent
       appView.activeEditor = @
+    
+    @editor.on "mousedown", =>
+      appView.activeEditor = @
       
     CodeMirror.commands.autocomplete = (cm) ->
       handler = CodeMirrorSettings.autocompleteHandlers[@fileExtension] or "anyword"
@@ -350,10 +353,6 @@ class CodeMirrorEditor extends KDView
   doInternalResize_: ->
     @utils.defer =>
       @editor.setSize "100%", @container.getHeight() - 44 # 44 is top and bottom bars
-      
-      {workspace} = appView # hack for split view window resize glitch
-      if workspace.currentLayout is "vertical"
-        KD.utils.defer => workspace.toggleView "vertical"
       
   notify: (title, cssClass = "", duration = 3000, type = "mini") ->
     @notification.destroy()  if @notification

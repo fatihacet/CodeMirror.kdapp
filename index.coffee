@@ -1,11 +1,15 @@
-codeMirrorWorkspace = new CodeMirrorWorkspace
-appView.workspace   = codeMirrorWorkspace
+codeMirrorWorkspace    = new CodeMirrorWorkspace
+appView.workspace      = codeMirrorWorkspace
+
+appView.workspace.on "viewAppended", =>
+  topLeftPane          = appView.workspace.getActivePanel().getPaneByName "topLeftPane"
+  firstCreatedEditor   = topLeftPane.tabView.getActivePane().editor
+  appView.activeEditor = firstCreatedEditor
 
 appView.addSubView codeMirrorWorkspace
 
 appView.on "FileNeedsToBeOpened", (file) ->
-  editorWrapper = codeMirrorWorkspace.getActivePanel().getPaneByName "topLeftPane"
-  editorWrapper.openFile file
+  appView.activeEditor.getDelegate().openFile file
 
 eventNames = [ "save", "saveAs" , "saveAll"      , "find"   , "findAndReplace",
                "goto", "compile", "compileAndRun", "preview", "quit", "exit"  ]
